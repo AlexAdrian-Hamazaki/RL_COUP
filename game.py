@@ -67,10 +67,16 @@ class Game:
     @property
     def current_player(self):
         return self._current_player
+    @current_player.setter
+    def current_player(self, player):
+        self._current_player = player
     
     @property
     def other_players(self):
         return self._other_players
+    @other_players.setter
+    def other_players(self, other_players):
+        self._other_players = other_players
     
     @property
     def players(self):
@@ -87,6 +93,12 @@ class Game:
     @property
     def contest_status(self):
         return self._contest_status
+    @contest_status.setter
+    def contest_status(self, status):
+        if status not in {'failed', 'successful', None}:
+            raise ValueError("invalid contest_status set")
+        self._contest_status = status
+    
     
     def _setup_deal(self): # initialize dealing of cards to players
         print("Dealing Setup Cards")
@@ -110,13 +122,19 @@ class Game:
         other_players = players[player_int+1:] + players[:player_int]
         other_player_names = [ply.name for ply in other_players]
         player.others_claimed_cards =  {name : [] for name in other_player_names} # init dict for each other player to hold their claimed cards
-                
-    def next_players_turn(self):
+    
+    def update_player_turns(self):
         # handle turn order
-        if self._curr_turn == self._n_players-1:
+        if self._curr_turn == self._n_players:
             self._curr_turn = 0
-        self._current_player = self.current_player
+        self.current_player = self.players[self._curr_turn]
+        print(f"Player {self.current_player.name}'s turn")
         
+        self.other_players  = self._players[self._curr_turn+1:] + self._players[:self._curr_turn]
+        
+    
+    def next_players_turn(self):
+        self.update_player_turns()
         # current player claims a certian action
         self.claim_action()
         # update claimed action knowledge
@@ -177,11 +195,7 @@ class Game:
         # after each claimed action by a player, each other players gets a sequential chance to contest
         player =  self.current_player
         other_players = self.other_players
-        
-        print("~~~~~~~~~~~~~~~~~~")
-        print(player)
-        print(other_players)
-        
+                
         # Claimed action currently being done by
         current_action = self.current_action
         
@@ -238,8 +252,8 @@ class Game:
     def do_action(self):
         # if no one contests the action it goes through
         action = self.current_action
-        action(self)
-        pass
+        action.do(self)
+        
 
                 
 

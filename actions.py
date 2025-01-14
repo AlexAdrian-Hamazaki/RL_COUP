@@ -24,7 +24,7 @@ class Income(Actions):
     def do(self, game):
         player = game.current_player
         player.take_coin(game)
-        print(f"{player.name} takes income!")
+        print(f"Player {player.name} takes income!")
 
 class Foreign_Aid(Actions):
     def __init__(self, name='foreign_aid'):

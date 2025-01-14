@@ -81,7 +81,6 @@ class Player():
             if game.bank.n <= 0:
                 raise ValueError
             else:
-                print(f"\t{self.name} takes 1 coin from bank")
                 self.coins+=1
                 game.bank.remove()
         except ValueError as e:
@@ -109,15 +108,11 @@ class Player():
         # is claiming
         # self is the other player in this case
         dic_other_claimed_cards = self.others_claimed_cards # keys are playernames and values is a set of their claimed cards
-        print(dic_other_claimed_cards)
-        print(player.name)
         current_players_claimed_cards = dic_other_claimed_cards[player.name]
         current_players_claimed_cards.append(action)
         # update knowledge of players cards
         dic_other_claimed_cards[player.name] = current_players_claimed_cards
         self.others_claimed_cards = dic_other_claimed_cards
-        print(self.others_claimed_cards)
-        assert False
         
     def put_card_on_bottom(self, game):
         pass
