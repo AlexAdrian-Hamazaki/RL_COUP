@@ -15,7 +15,8 @@ class Actions:
         player.take_coin(game)
     
     def coup(self, game):
-        pass
+        player = game.current_player
+        player.remove
     
     def tax(self, game):
         pass

@@ -121,11 +121,8 @@ class Captain(Card):
     @property
     def name(self):
         return self._name
-        
-        
-        
-    def steal(self, game, myplayer, otherplayer):
 
+    def steal(self, game, myplayer, otherplayer):
         pass
 
         
