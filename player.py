@@ -8,16 +8,12 @@ class Player():
         self._known_deck_order = [] # cards we know are in deck and where they are
         self._claimed_cards = set() # cards we claim
         self._others_claimed_cards = None # cards claimed by others # this is handeled by game object. kinda jank
-        self._coins = 0
+        self._coins = 8
         self._cards = [] # current cards
+        self._status = 'alive'
         
     def __repr__(self):
-        return f"""
-                Player {self._name},
-                Cards {self.cards}
-                Coins {str(self.coins)}
-                Claimed {str(self.claimed_cards)}
-                """
+        return f"""Player {str(self.name)}, Cards {str(len(self.cards))}, Coins {str(self.coins)}"""
         
     @property
     def name(self):
@@ -71,10 +67,20 @@ class Player():
     def cards(self, value: list):
         self._cards = value
         
+    @property
+    def status(self):
+        return self._status
+    @status.setter
+    def status(self, status):
+        self._status = status
+        
     
     def draw_card(self, game):
-        self._cards.append(game.deck.deck[0])
+        card = game.deck.deck[0]
+        card.status = 'hand'
+        self.cards.append(card)
         game.deck.remove_top_card()
+        
         
     def take_coin(self, game):
         try:
@@ -116,10 +122,37 @@ class Player():
         
     def put_card_on_bottom(self, game):
         pass
-    def lose_life(self): 
-        pass
-    def take_action(self, game, action):
-        pass
+    
+    def lose_life(self, game): 
+        player_cards = self.cards
+        lo_names = set([card.name for card in player_cards])
+        card_name = input(f"Player {self.name} choose to lose one of {lo_names}").strip().lower()
+        updated_list = []
+        found = False
+        for card in player_cards:
+            if found:
+                updated_list.append(card)
+            elif card.name.lower() == card_name and found==False:
+                print(f"Player {self.name} reveals a {card_name}")
+                found = True
+                revealed_card = card
+                
+        self.cards = updated_list
+        revealed_card.state='revealed'
+        game.revealed_cards.append(revealed_card)
+        
+        self.check_death(game)
+    
+    def check_death(self, game):
+        # if player is dead, update the turn order
+        if len(self.cards)==0:
+            print(f"Player {self.name} is out of influence")
+        self.status = 'dead'
+        game.update_turn_order_after_death()
+
+        
+        
+        
     def challenge(self, game):
         pass
 

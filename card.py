@@ -2,7 +2,7 @@
 
 class Card:
     # Sets of allowed things
-    ALLOWED_STATES = {"deck", "face_up", "face_down"}  
+    ALLOWED_STATES = {"deck", "revealed", "hand"}  
     ALLOWED_NAMES = {"assassin", "captain", "ambassador, contessa, duke"}
 
 
@@ -28,8 +28,6 @@ class Card:
         if name not in Card.ALLOWED_NAMES:
             raise ValueError(f"Invalid cardname '{name}'. Allowed cards are {', '.join(Card.ALLOWED_NAMES)}.")
         
-    def change_state(self, state):
-        self._state = state
         
 
 class Assassin(Card):
@@ -136,7 +134,7 @@ class Captain(Card):
     
         
 # class CardState(Card):
-#     allowed_states = {"deck", "face_up", "face_down"}    
+#     allowed_states = {"deck", "revealed", "hand"}    
     
 #     def __init__(self, state="deck"):
 #         # Use the setter method to set the initial state

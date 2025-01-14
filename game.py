@@ -2,21 +2,23 @@ import numpy as np
 from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange
 from card import Assassin, Captain, Contessa, Ambassador, Duke
 from player import Player
-
+import textwrap
 class Game:
     
     
     def __init__(self, n_players):
         self._n_players = n_players
+        self._action_n = 0
         self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
         self._deck._shuffle() # shuffle deck
+        self._revealed_cards = []
         self._bank = CoinBank()
         self._curr_turn = 0
         self._current_player = self._players[self._curr_turn]
         self._other_players = self._players[self._curr_turn+1:] + self._players[:self._curr_turn]
         self._current_action = None 
-        self._action_target = None
+        self._target_player = None
         self._contest_status = None
         
         self.on = True # true if game is live, False if game is over
@@ -36,26 +38,33 @@ class Game:
                             "exchange":Exchange()}
         
     
-        print(f"""
-              Initializing game {self} 
-              With players {self._players}
-        """)
+        print(f"""Initialized game with {len(self.players)} players""")
         
 
         
         
         
     def __repr__(self):
-        return f"""
-              Game of COUP
-              Number of Players = {self._n_players}
-              Current Deck Order (top to bottom) = {self._deck}
-              Current Coins in Bank = {self._bank}
-              Current player = {str(self.current_player)}
-              Current claimed action = {str(self.current_action)}
-              Turn order after player: {str(self._other_players)}
-              """
-    
+        # Indent each player properly by prepending "   " to each player's name
+        players_list = "\n   ".join([str(player) for player in self.other_players])
+        players_list = "   " + players_list  # Ensure the first player is indented too
+        # Use textwrap.dedent to clean up the leading indentation from the entire block
+        result = f"""
+{"*"*40}
+GAME STATUS
+{"-"*40}
+Turn: {self._action_n}
+Current player: {str(self.current_player)}
+Turn order after player:
+{players_list}
+Revealed cards: {str(self.revealed_cards)}
+Current Coins in Bank = {self._bank}
+{"*"*40}"""
+        
+        # Dedent the entire block to avoid unnecessary leading spaces
+        return result
+
+        
     @property
     def deck(self):
         return self._deck
@@ -85,10 +94,16 @@ class Game:
     @property
     def current_action(self):
         return self._current_action
+    @current_action.setter
+    def current_action(self, action):
+        self._current_action = action
     
     @property
-    def action_target(self):
-        return self._action_target
+    def target_player(self):
+        return self._target_player
+    @target_player.setter
+    def target_player(self, player):
+        self._target_player = player
     
     @property
     def contest_status(self):
@@ -98,6 +113,12 @@ class Game:
         if status not in {'failed', 'successful', None}:
             raise ValueError("invalid contest_status set")
         self._contest_status = status
+        
+    @property
+    def revealed_cards(self):
+        return self._revealed_cards
+    def add_to_revealed_cards(self, card):
+        self._revealed_cards = self._revealed_cards.append(card)
     
     
     def _setup_deal(self): # initialize dealing of cards to players
@@ -128,14 +149,25 @@ class Game:
         if self._curr_turn == self._n_players:
             self._curr_turn = 0
         self.current_player = self.players[self._curr_turn]
-        print(f"Player {self.current_player.name}'s turn")
+        # print(f"Player {self.current_player.name}'s turn")
         
         self.other_players  = self._players[self._curr_turn+1:] + self._players[:self._curr_turn]
-        
+    
+    def get_player_by_name(self, player_name):
+        # returns the actual player object given a string name
+        for player in self.players:
+            if str(player_name) == str(player.name):
+                return player
+        raise ValueError(f"Player name {player_name} not found")
     
     def next_players_turn(self):
+    
         self.update_player_turns()
-        # current player claims a certian action
+        
+        # print message indicating status of game
+        print(self)
+        
+        # current player claims a certian action        
         self.claim_action()
         # update claimed action knowledge
         self.update_claims()
@@ -155,30 +187,45 @@ class Game:
         
         # reset contest status to None
         self.contest_status = None
+        self.current_action = None
+        self.target_player = None
         
         self._curr_turn +=1 # uptick current turn index
         
     def claim_action(self):
-        # prompt for action
-        action_input = input(f"""
-            {"="*40}
-            Select an action out of the following:
-            {"-"*40}
-            {', '.join(self.actions.ALLOWED_ACTIONS)}
-            {"="*40}
-            """).strip().lower()
-        
+        # Create the prompt text
+        prompt_text = f"""
+        {"="*40}
+        Select an action out of the following:
+        {"-"*40}
+        {', '.join(self.actions.ALLOWED_ACTIONS)}
+        {"="*40}
+        """
+
+        # Use textwrap.dedent to clean up any unwanted indentation in the prompt
+        # Then, add one tab at the beginning of the entire prompt string
+        action_input = input(
+            textwrap.dedent(prompt_text).replace("\n", "\n\t")  # Add tab before every new line
+        )
         if action_input not in self.actions.ALLOWED_ACTIONS:
-            print("Chose invalid action")
+            print("\t\tChose invalid action")
             return self.claim_action()
-        elif not self.check_coins(action_input): # for the action you choose, you need to have enough coins
-            print("Insufficient coins")
+        if not self.check_coins(action_input): # for the action you choose, you need to have enough coins
+            print("\t\tInsufficient coins")
             return self.claim_action()
-        else:
-            action_instance = self._action_map[action_input]
-            # update game to store claimed action
-            self._current_action = action_instance
-            
+        if action_input in self.actions.ACTIONS_WITH_TARGET:
+            target_player = input(f"\n\t\tWhat player do you want to target? {[player.name for player in self.other_players]}")
+            if self.get_player_by_name(target_player):
+                self.target_player = self.get_player_by_name(target_player)
+            else:
+                print("\t\tInvalid player selection")
+                return self.claim_action()
+        
+        action_instance = self._action_map[action_input]
+        
+        # update game to store claimed action
+        self.current_action = action_instance
+        
     def check_coins(self, action_input):
         # returns true if you have enough coins for action
         # or action has no coin cost
@@ -195,6 +242,8 @@ class Game:
         # after each claimed action by a player, each other players gets a sequential chance to contest
         player =  self.current_player
         other_players = self.other_players
+        
+        print(f"\tPlayer {player.name} claims {self.current_action}")
                 
         # Claimed action currently being done by
         current_action = self.current_action
@@ -255,7 +304,8 @@ class Game:
         action.do(self)
         
 
-                
+    def _update_order_after_death(self):
+        pass
 
     
 

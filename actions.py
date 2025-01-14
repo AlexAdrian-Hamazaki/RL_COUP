@@ -24,7 +24,7 @@ class Income(Actions):
     def do(self, game):
         player = game.current_player
         player.take_coin(game)
-        print(f"Player {player.name} takes income!")
+        print(f"\tPlayer {player.name} takes income!")
 
 class Foreign_Aid(Actions):
     def __init__(self, name='foreign_aid'):
@@ -50,7 +50,9 @@ class Coup(Actions):
         return self._name  
     def do(self, game):
         player = game.current_player
-        player.lose_coin(game, 7)  # Cost of coup
+        other_player = game.target_player
+        player.discard_coin(game, 7)  # Cost of coup
+        other_player.lose_life(game)
         print(f"{player.name} performs a coup!")
 
 class Tax(Actions):
