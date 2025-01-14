@@ -1,4 +1,4 @@
-class Action:
+class Actions:
     # each person will have an action doing class?
     ALLOWED_ACTIONS = {"income", "foreign_aid", "block_foreigh_aid", "coup",
                        "tax", "assassinate", "block_assassinate",
