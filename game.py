@@ -5,7 +5,6 @@ from player import Player
 
 class Game:
     
-    POSSIBLE_ACTIONS = {} # set of possible actions to take
     
     def __init__(self, n_players):
         self._n_players = n_players
@@ -13,10 +12,26 @@ class Game:
         self._deck = Deck()    
         self._deck._shuffle() # shuffle deck
         self._bank = CoinBank()
-        self._curr_turn = None
+        self._curr_turn = 0
+        self.on = True # true if game is live, False if game is over
+        self._current_player = 0
+        self._curr_action = None # TODO INSTANTIATE CURRENT ACTION
         
-        # TODO ADD INITIALIZATION OF GAME FUNCTIONS HERE INSTEAD OF IN SCRIPT
-    
+        # setup game
+        self._setup_deal()    
+        self._setup_give_coins()    
+        
+        
+        print(f"""
+              Initializing game {self} 
+              With players {self._players}
+        """)
+        
+        # init action helper
+        self.actions = Actions()
+        
+        
+        
     def __repr__(self):
         return f"""
               Game of COUP
@@ -33,8 +48,10 @@ class Game:
     @property
     def bank(self):
         return self._bank
-
     
+    @property
+    def current_player(self):
+        return self._current_player
     
     def _setup_deal(self): # initialize dealing of cards to players
         print("Dealing Setup Cards")
@@ -42,8 +59,7 @@ class Game:
         while n < 2 * self._n_players:
             for player in self._players:
                 player.draw_card(self)
-                n+=1
-                
+                n+=1        
     
     def _setup_give_coins(self): # initialize giving of cards to players
         print("Giving Coins to players")
@@ -52,15 +68,42 @@ class Game:
             for player in self._players:
                 player.take_coin(self)
                 n+=1
-            
-        
-    
-        
-    
-        
-    
-    
+                
+    def next_players_turn(self):
 
+        # handle turn order
+        if self._curr_turn == self._n_players-1:
+            self._curr_turn = 0
+        self._current_player = self._players[self._curr_turn]
+        
+        # try and execute an action
+        self.try_action()
+        
+        self._curr_turn +=1 # uptick current turn index
+        
+    def try_action(self):
+        # prompt for action
+        action_input = input(f"""
+            {"="*40}
+            Select an action out of the following:
+            {"-"*40}
+            {', '.join(self.actions.ALLOWED_ACTIONS)}
+            {"="*40}
+            """).strip().lower()
+        
+        if action_input not in self.actions.ALLOWED_ACTIONS:
+            print("Chose Invalid Action")
+            return self.try_action()
+        else:            
+            action = getattr(self.actions, action_input, None)
+            # execute action
+            action(self)
+            
+    def contest_action(self):
+        # contest an action made by curent player.
+        # self.curr_action.
+        
+                
 class Deck():
     def __init__(self):
         dukes = [Duke() for _ in range(3)]
@@ -70,16 +113,13 @@ class Deck():
         ambos = [Ambassador() for _ in range(3)]
         
         self._deck = np.array(dukes + contessas + assassins + captains + ambos)
-        
-        
-        
+    
     @property
     def deck(self):
         return self._deck
         
     def __repr__(self):
         return f"Deck State : {self._deck.tolist()}"
-        
         
     def remove_top_card(self):# top card gets drawn be player
         self._deck = self._deck[1:]
