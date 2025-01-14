@@ -4,35 +4,104 @@ class Actions:
         "income", "foreign_aid", "coup", "tax", 
         "assassinate", "steal", "exchange"
     ]
+    CONTESTABLE_ACTIONS = {'tax','assassinate','steal','exchange',
+                           'block_assassinate','block_foreign_aid','block_steal'}
     
-    def income(self, game):
+    ACTION_COST = {"coup":7, 'assassinate':3}
+    
+    ACTIONS_WITH_TARGET = {'coup', 'assassinate', 'steal'}
+  
+# Subclasses for each action
+class Income(Actions):
+    def __init__(self, name='income'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name
+    
+    def do(self, game):
         player = game.current_player
         player.take_coin(game)
-    
-    def foreign_aid(self, game):
-        player = game.current_player
-        player.take_coin(game)
-        player.take_coin(game)
-    
-    def coup(self, game):
-        player = game.current_player
-        player.remove
-    
-    def tax(self, game):
-        pass
-    
-    def assassinate(self, game):
-        pass
-    
-    def steal(self, game):
-        pass
-    
-    def exchange(self, game):
-        pass
-    
+        print(f"{player.name} takes income!")
 
-class Contest:
-    pass
+class Foreign_Aid(Actions):
+    def __init__(self, name='foreign_aid'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name    
+    def do(self, game):
+        player = game.current_player
+        player.take_coin(game)
+        player.take_coin(game)
+        print(f"{player.name} takes foreign aid!")
+
+class Coup(Actions):
+    def __init__(self, name='coup'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name  
+    def do(self, game):
+        player = game.current_player
+        player.lose_coin(game, 7)  # Cost of coup
+        print(f"{player.name} performs a coup!")
+
+class Tax(Actions):
+    def __init__(self, name='Tax'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name  
+    def do(self, game):
+        player = game.current_player
+        player.take_coin(game)
+        print(f"{player.name} collects tax!")
+
+class Assassinate(Actions):
+    def __init__(self, name='Assassinate'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name  
+    def do(self, game):
+        print("Assassination action performed!")
+
+class Steal(Actions):
+    def __init__(self, name='Steal'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name  
+    def do(self, game):
+        print("Steal action performed!")
+
+class Exchange(Actions):
+    def __init__(self, name='Exchange'):
+        self._name = name        
+    def __repr__(self):
+        return self.name
+    @property
+    def name(self):
+        return self._name  
+    def do(self, game):
+        print("Exchange action performed!")
+
+
+# class Contest:
+#     pass
 
     # @property
     # def action(self):

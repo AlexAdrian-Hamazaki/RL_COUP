@@ -6,8 +6,8 @@ class Player():
         self._name = name
         self._known_cards = [] # cards we know and where they are (deck or face-up by another player)
         self._known_deck_order = [] # cards we know are in deck and where they are
-        self._claimed_cards = {} # cards we claim
-        self._others_claimed_cards = [] # cards claimed by others
+        self._claimed_cards = set() # cards we claim
+        self._others_claimed_cards = None # cards claimed by others # this is handeled by game object. kinda jank
         self._coins = 0
         self._cards = [] # current cards
         
@@ -16,6 +16,7 @@ class Player():
                 Player {self._name},
                 Cards {self.cards}
                 Coins {str(self.coins)}
+                Claimed {str(self.claimed_cards)}
                 """
         
     @property
@@ -69,7 +70,7 @@ class Player():
     @cards.setter
     def cards(self, value: list):
         self._cards = value
-    
+        
     
     def draw_card(self, game):
         self._cards.append(game.deck.deck[0])
@@ -97,20 +98,27 @@ class Player():
         except ValueError as e:
             print(f"\t{self.name} cannot give enough coins to perform action")
             return 0 #action failed flag.
-        
+    
+    
     def add_claimed_card(self, action):
-        self.claimed_cards.add(action.name)
+        self.claimed_cards.add(action)
     def remove_claimed_card(self, action):
-        self.claimed_cards.add(action.name)
-    def update_others_curr_ac(self, action, player):
+        self.claimed_cards.add(action)
+    def update_others_curr_ac(self, action, player): 
+        # updates the "other players" knowledge of what the current player
+        # is claiming
+        # self is the other player in this case
         dic_other_claimed_cards = self.others_claimed_cards # keys are playernames and values is a set of their claimed cards
+        print(dic_other_claimed_cards)
+        print(player.name)
         current_players_claimed_cards = dic_other_claimed_cards[player.name]
-        current_players_claimed_cards.add(action.name)
+        current_players_claimed_cards.append(action)
         # update knowledge of players cards
         dic_other_claimed_cards[player.name] = current_players_claimed_cards
         self.others_claimed_cards = dic_other_claimed_cards
+        print(self.others_claimed_cards)
+        assert False
         
-
     def put_card_on_bottom(self, game):
         pass
     def lose_life(self): 
