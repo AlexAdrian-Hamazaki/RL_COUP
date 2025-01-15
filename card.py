@@ -4,6 +4,7 @@ class Card:
     # Sets of allowed things
     ALLOWED_STATES = {"deck", "revealed", "hand"}  
     ALLOWED_NAMES = {"assassin", "captain", "ambassador, contessa, duke"}
+    SHORT_KEYS = {'as':'assassin', 'cap':'captain', 'amb':'ambassador','con':'contessa','d':"duke"}
 
 
     def __init__(self, name):
@@ -102,9 +103,6 @@ class Duke(Card):
     def name(self):
         return self._name
     
-    def tax(self, game, myplayer):
-        pass
-        
 
 class Captain(Card):
     REAL_ACTIONS = {"steal", "block_steal"}

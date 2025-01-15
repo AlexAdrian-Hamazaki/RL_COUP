@@ -1,14 +1,14 @@
 
 import numpy as np
-
+from card import Card
 class Player():
     def __init__(self, name:str):
         self._name = name
         self._known_cards = [] # cards we know and where they are (deck or face-up by another player)
         self._known_deck_order = [] # cards we know are in deck and where they are
         self._claimed_cards = set() # cards we claim
-        self._others_claimed_cards = None # cards claimed by others # this is handeled by game object. kinda jank
-        self._coins = 8
+        self._others_claimed_actions = [] # cards claimed by others # this is handeled by game object. kinda jank
+        self._coins = 0
         self._cards = [] # current cards
         self._status = 'alive'
         
@@ -44,11 +44,11 @@ class Player():
         self._claimed_cards = value
     
     @property
-    def others_claimed_cards(self):
-        return self._others_claimed_cards
-    @others_claimed_cards.setter
-    def others_claimed_cards(self, value): #TODO Handle player-card relationships. Maybe make a dict here for player:claimed cards?
-        self._others_claimed_cards = value
+    def others_claimed_actions(self):
+        return self._others_claimed_actions
+    @others_claimed_actions.setter
+    def others_claimed_actions(self, value): #TODO Handle player-card relationships. Maybe make a dict here for player:claimed cards?
+        self._others_claimed_actions = value
     
     @property
     def coins(self):
@@ -64,8 +64,8 @@ class Player():
     def cards(self):
         return self._cards
     @cards.setter
-    def cards(self, value: list):
-        self._cards = value
+    def cards(self, cards: list):
+        self._cards = cards
         
     @property
     def status(self):
@@ -82,81 +82,98 @@ class Player():
         game.deck.remove_top_card()
         
         
-    def take_coin(self, game):
+    def take_coins(self, game, n):
         try:
-            if game.bank.n <= 0:
-                raise ValueError
+            if n > game.bank.n :
+                raise ValueError(f"\tCannot take {n} couns from bank")
             else:
-                self.coins+=1
-                game.bank.remove()
+                self.coins+=n
+                game.bank.remove(n)
         except ValueError as e:
-            print("No coins in bank, invalid option")
-            return 0 #action failed flag.
+            return 0 #action failed flag. #TODO
         
     def discard_coin(self, game, n:int):
         try:
             if self.coins <= n:
-                raise ValueError
+                raise ValueError(f"\tNot enough coins to discard {n}")
             else:
-                self.coins+-n
-                [game.bank.add() for _ in range(n)]
+                self.coins-=n
+                # print(f"\tGave {n} couns to bank")
+                game.bank.add(n)
         except ValueError as e:
-            print(f"\t{self.name} cannot give enough coins to perform action")
             return 0 #action failed flag.
     
     
-    def add_claimed_card(self, action):
+    def add_claimed_action(self, action):
         self.claimed_cards.add(action)
-    def remove_claimed_card(self, action):
+    def remove_claimed_action(self, action):
         self.claimed_cards.add(action)
+
+        
+        
     def update_others_curr_ac(self, action, player): 
         # updates the "other players" knowledge of what the current player
         # is claiming
         # self is the other player in this case
-        dic_other_claimed_cards = self.others_claimed_cards # keys are playernames and values is a set of their claimed cards
+        dic_other_claimed_cards = self.others_claimed_actions # keys are playernames and values is a set of their claimed cards
         current_players_claimed_cards = dic_other_claimed_cards[player.name]
         current_players_claimed_cards.append(action)
         # update knowledge of players cards
         dic_other_claimed_cards[player.name] = current_players_claimed_cards
-        self.others_claimed_cards = dic_other_claimed_cards
+        self.others_claimed_actions = dic_other_claimed_cards
         
-    def put_card_on_bottom(self, game):
-        pass
+    def put_card_on_bottom(self, card, game):
+        self.cards.remove(card)
+        game.deck.add_to_bottom(card)
+        
+                
     
     def lose_life(self, game): 
+        """Player loses a life
+        Handles the following:
+        removal of lost life from claimed cards
+        removal of card from players cards
+        addition of dead card into known pool of revealed cards
+        checks to see if player is dead and handles turn order changes
+
+        Args:
+            game (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         player_cards = self.cards
         lo_names = set([card.name for card in player_cards])
-        card_name = input(f"Player {self.name} choose to lose one of {lo_names}").strip().lower()
+        card_name = input(f"\tPlayer {self.name} choose to lose one of {lo_names}").strip().lower()
+        
+        if Card.SHORT_KEYS.get(card_name): # if shorthand name was used, get full name
+            card_name = Card.SHORT_KEYS.get(card_name)
+        
         updated_list = []
         found = False
         for card in player_cards:
-            if found:
-                updated_list.append(card)
-            elif card.name.lower() == card_name and found==False:
+            if card.name.lower() == card_name and found==False:
                 print(f"Player {self.name} reveals a {card_name}")
                 found = True
                 revealed_card = card
+            else:
+                updated_list.append(card)
+        if found == False:
+            print(f"\tInvalid card name selected, you dont have that card: {lo_names}")
+            return self.lose_life(game)
                 
         self.cards = updated_list
         revealed_card.state='revealed'
+        [self.remove_claimed_action(ac) for ac in revealed_card.REAL_ACTIONS] # may fail here
         game.revealed_cards.append(revealed_card)
-        
         self.check_death(game)
     
     def check_death(self, game):
         # if player is dead, update the turn order
         if len(self.cards)==0:
             print(f"Player {self.name} is out of influence")
-        self.status = 'dead'
-        game.update_turn_order_after_death()
-
-        
-        
-        
-    def challenge(self, game):
-        pass
-
-
+            self.status = 'dead'
+            game.update_order_after_death()
 
 
 

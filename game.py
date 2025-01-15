@@ -1,7 +1,10 @@
 import numpy as np
-from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange
+from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, Challenge
 from card import Assassin, Captain, Contessa, Ambassador, Duke
 from player import Player
+from deck import Deck
+from bank import CoinBank
+
 import textwrap
 class Game:
     
@@ -11,7 +14,7 @@ class Game:
         self._action_n = 0
         self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
-        self._deck._shuffle() # shuffle deck
+        self._deck.shuffle() # shuffle deck
         self._revealed_cards = []
         self._bank = CoinBank()
         self._curr_turn = 0
@@ -26,7 +29,7 @@ class Game:
         # setup game
         self._setup_deal()    
         self._setup_give_coins()
-        [self._setup_other_claimed_card_dicts(player) for player in self.players]    
+        [self._setup_other_claimed_action_dicts(player) for player in self.players]    
         # setup actions, which will hold all possible actions
         self.actions = Actions()
         self._action_map =  {"income":Income(),
@@ -90,6 +93,9 @@ Current Coins in Bank = {self._bank}
     @property
     def players(self):
         return self._players
+    @players.setter
+    def players(self, players):
+        self._players = players
     
     @property
     def current_action(self):
@@ -117,6 +123,7 @@ Current Coins in Bank = {self._bank}
     @property
     def revealed_cards(self):
         return self._revealed_cards
+    
     def add_to_revealed_cards(self, card):
         self._revealed_cards = self._revealed_cards.append(card)
     
@@ -132,17 +139,17 @@ Current Coins in Bank = {self._bank}
     def _setup_give_coins(self): # initialize giving of cards to players
         print("Giving Coins to players")
         n = 0
-        while n < 2 * self._n_players:
+        while n < self._n_players:
             for player in self._players:
-                player.take_coin(self)
+                player.take_coins(self, 2)
                 n+=1
                 
-    def _setup_other_claimed_card_dicts(self, player):
+    def _setup_other_claimed_action_dicts(self, player):
         player_int = player.name
         players = self.players
         other_players = players[player_int+1:] + players[:player_int]
         other_player_names = [ply.name for ply in other_players]
-        player.others_claimed_cards =  {name : [] for name in other_player_names} # init dict for each other player to hold their claimed cards
+        player.others_claimed_actions =  {name : [] for name in other_player_names} # init dict for each other player to hold their claimed cards
     
     def update_player_turns(self):
         # handle turn order
@@ -160,7 +167,7 @@ Current Coins in Bank = {self._bank}
                 return player
         raise ValueError(f"Player name {player_name} not found")
     
-    def next_players_turn(self):
+    def next_players_turn(self): # TODO SIGNIFICANTLY CLEAN. Fix Action class to be like challenge class. Instantiate action class here.
     
         self.update_player_turns()
         
@@ -172,14 +179,13 @@ Current Coins in Bank = {self._bank}
         # update claimed action knowledge
         self.update_claims()
         
-        if self.current_action in self.actions.CONTESTABLE_ACTIONS:
+        if self.current_action.name in self.actions.CONTESTABLE_ACTIONS:
             # all others players are allowed to contest if the action is one that is contestable
-            self.round_of_contests() # contest status is updated to see what happens to the action.
+            challenge_status = self.round_of_contests() # contest status is updated to see what happens to the action.
             # round of contest handels the actual checking to see who wins the contesting.
-        
-        if self._contest_status == 'success':
+        if challenge_status == 'success':
             pass # nothing hpapens if the contest was successfull. Action does not go through
-        elif self._contest_status == "failed":
+        elif challenge_status == "failed":
             # execute an action
             self.do_action()
         else:
@@ -214,7 +220,7 @@ Current Coins in Bank = {self._bank}
             print("\t\tInsufficient coins")
             return self.claim_action()
         if action_input in self.actions.ACTIONS_WITH_TARGET:
-            target_player = input(f"\n\t\tWhat player do you want to target? {[player.name for player in self.other_players]}")
+            target_player = input(f"\n\tWhat player do you want to target?: {[player.name for player in self.other_players]}")
             if self.get_player_by_name(target_player):
                 self.target_player = self.get_player_by_name(target_player)
             else:
@@ -249,7 +255,7 @@ Current Coins in Bank = {self._bank}
         current_action = self.current_action
         
         # update this player's claimed actions
-        player.add_claimed_card(current_action)
+        player.add_claimed_action(current_action)
         # update the other player's knowledge if this players claimed actions
         [other_player.update_others_curr_ac(current_action, player) for other_player in other_players]
         
@@ -257,14 +263,14 @@ Current Coins in Bank = {self._bank}
     def round_of_contests(self):
         for other_player in self.other_players:
             if self.want_contest(other_player): # game asks if other player wants to contest prev action
-                print(f"Player {other_player.name} contests action")
-                contest_status = self._check_contest(other_player) # cards are checkd to see if contest is successfull
-                self.contest_status = contest_status
-                break # no other players need to be checked
+                print(f"\tPlayer {other_player.name} contests action")
+                challenge_status = self.check_contest(other_player) # cards are checkd to see if contest is successfull # TODO I THINK THIS WILL ALSO HAVE TO CHANGE WHEN BLOCKS ARE ADDED
+                return challenge_status
+                
             
     def want_contest(self, other_player):
         # game asks player if player wants to contest the proposed action of the current player
-        contest = input(f"Does {other_player.name} want to contest current action: (y/n)")
+        contest = input(f"\t\tDoes {other_player.name} want to contest current action: (y/n)")
         if contest=="y":
             return True
         elif contest=="n":
@@ -275,81 +281,56 @@ Current Coins in Bank = {self._bank}
         
     def check_contest(self, other_player):
         #other player contests the action of current player (in self.current_player)
-        
         #first the current player reveals if they have the card required to do the action
-        if self.current_player.can_rev_cc(): # if they have the card they claim
-            
-            #### Actions done by current player
-            # reveal claimed card
-            self.current_player.rev_claim_card() #
-            # put in deck, shufffle and draw
-            self.current_player.put_card_on_bottom()
-            self.deck._shuffle()
-            self.current_player.draw_card() 
-            self.current_player.remove_claimed_card() # remove it as a card person is claiming because its shuffled in deck
-            
-            #### Actions done by player whose guess was wrong
-            choice_card = other_player.rev_choice_card() # reveals this card, which handels it going in the dead pile as well
-            other_player.remove_choice_card(choice_card)
-            return 'failed'
-            
+        challenge = Challenge(self, self.current_player, other_player)
+        if challenge.can_rev_cc(): # if they have the card they claim this will be true
+            challenge.challenge_fails()
         else: # the current player does not have the card they claim to have the power for
-            choice_card = other_player.rev_choice_card() # reveals this card, which handels it going in the dead pile as well
-            other_player.remove_choice_card(choice_card)
-            return 'success'
-
+            challenge.challenge_succeeds()
+            
     def do_action(self):
         # if no one contests the action it goes through
         action = self.current_action
         action.do(self)
         
 
-    def _update_order_after_death(self):
-        pass
-
-    
-
+    def update_order_after_death(self):
+        players = self.players
+        # first we find the index of the player that is dead
+        i_dead = None
+        for i, player in enumerate(players):
+            if player.status == 'dead':
+                i_dead = i
+                break
+        if i_dead==None:
+            raise ValueError("i_dead should never be None when this function is called")
         
+        
+        alive_players = players[i_dead+1:] + players[:i_dead] # retain turn order
+        # Case when player who dies its their turn
+        if i_dead == self._curr_turn:
+            self.players = alive_players
+            # down tirk turn int so that when it gets upticked later its right
+            self._curr_turn-=1
+            self._n_players-=1
+        # cse where dead player dies and active player is behind them
+        elif i_dead > self._curr_turn: 
+            # player did when it was not their turn.
+            self.players = alive_players # dont need to change cur_turn tracker because we will just continue on as is
+            self._n_players-=1
+        # case where dead player dies and is behind them in turn order # note that sthis ends up being the same case as case 1
+        elif i_dead < self._curr_turn:
+            self.players = alive_players
+            self._n_players-=1
+            self._curr_turn-=1
                 
-class Deck():
-    def __init__(self):
-        dukes = [Duke() for _ in range(3)]
-        contessas = [Contessa() for _ in range(3)]
-        assassins = [Assassin() for _ in range(3)]
-        captains = [Captain() for _ in range(3)]
-        ambos = [Ambassador() for _ in range(3)]
-        
-        self._deck = np.array(dukes + contessas + assassins + captains + ambos)
+                
+            
     
-    @property
-    def deck(self):
-        return self._deck
-        
-    def __repr__(self):
-        return f"Deck State : {self._deck.tolist()}"
-        
-    def remove_top_card(self):# top card gets drawn be player
-        self._deck = self._deck[1:]
-    def _add_to_bottom(self):# player adds card to bottom
-        pass
-    def _shuffle(self):
-        np.random.shuffle(self._deck)  # Shuffle in place, no need to assign it back
-        print("Deck Shuffled")
 
-class CoinBank():
-    def __init__(self):
-        self._n = 50      
-    def __repr__(self):
-        return str(self._n)
-    
-    def remove(self):
-        self._n -=1
-    def add(self):
-        self._n +=1  
-    
-    @property
-    def n(self):
-        return self._n
+
+
+
     
 
 
