@@ -1,5 +1,7 @@
 import textwrap
 from challenge import Challenge
+from block import Block
+
 class Turn:
     def __init__(self):
         self._current_player = None
@@ -79,32 +81,35 @@ Turn order after player:
                               current_player = current_player,
                               challenging_player = None)
 
-        if challenge.is_action_challengable(): # if action can be challenged
+        if challenge.is_action_challengable(): # if action can be challenged 
             challenge.challenge_round()
             
-        #### Result of challenge determines if we need to see if blocking happens or not
-        #### BLOCKING OPTION
-
+        ###### RESULT OF CHALLENGE
         if challenge.status == 1:
             return # nothing hpapens if the contest was successfull. Action does not go through.
             # handeling of lost life is handled in challenge_round
         elif challenge.status == 0:  # if challenge failed. This means that the player that challenged lost a life
             # and the action still goes through
             self.do(game)
-
+            
+    
+        #### BLOCKING OPTION
         elif challenge.status is None:  # no one challenged:
 
-            # # then players can choose to block
-            # block = Block(game=self, current_player = current_player)
+            # then players can choose to block
+            # block will need information about whose is making the action, what the action is (if the action is blockable), and Will eventually need to check their knowledge
+            block = Block(game=game,
+                          turn=self)
             
-            # if block.is_action_blockable():
-            #     block.block_round()
+            if block.is_action_blockable():
+                block.block_round()
                 
-            # if block.status == 1: #block was a success so the active player will not do the action
-            #     return
-            # elif block.status == 0: #block failed, or no one chose to block
-            #     print(f"Player {current_player.name} performs action: {self.current_action.name}")
-            self.do(game)
+            if block.status == 1: #block was a success so the active player will not do the action
+                return
+            elif block.status == 0: #block failed
+                self.do(game)
+            elif block.status == None: # no one chose to block
+                self.do(game)
 
 
     def claim_action(self, player, game):

@@ -1,5 +1,5 @@
 import numpy as np
-from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange
+from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal
 from card import Assassin, Captain, Contessa, Ambassador, Duke
 from challenge import Challenge
 from player import Player
@@ -35,6 +35,9 @@ class Game:
                             "assassinate":Assassinate,
                             "steal":Steal,
                             "exchange":Exchange}
+        self._block_action_map =  {"Block_Foreign_Aid":B_Foreign_Aid,
+                                   "Block_Assassinate":B_Assassinate,
+                                   "Block_Steal":B_Steal}
         
     
         print(f"""Initialized game with {len(self.players)} players""")

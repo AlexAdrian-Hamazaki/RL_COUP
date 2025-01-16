@@ -75,16 +75,28 @@ class Challenge:
     def is_action_challengable(self):
         return self.current_action.challengable 
     
-            
+    def duel(self, other_player):
+        print(f"\tPlayer {other_player.name} contests action")
+        self.challenging_player = other_player
+        self.execute_challenge() # cards are checked to see if contest is successfull
+    
     def challenge_round(self):
-        other_players = self.game.turn.other_players
+        other_players = self.get_other_players()
         for other_player in other_players:
             if other_player.check_challenge(self): # compares player knowledge to game state and asks if they want to challenge most recent action
-                print(f"\tPlayer {other_player.name} contests action")
-                self.challenging_player = other_player
-                self.execute_challenge() # cards are checkd to see if contest is successfull
+                self.duel(other_player)
                 break
-                
+            
+    def get_other_players(self):
+        players = self.game.players
+        current_player = self.current_player
+        lo_names = [player.name for player in players]
+        
+        player_int = lo_names.index(current_player.name)
+    
+        other_players = players[player_int+1:] + players[:player_int]
+
+        return other_players
     
     def execute_challenge(self):
         #other player contests the action of current player (in self.current_player)

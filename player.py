@@ -8,7 +8,7 @@ class Player():
         self._name = name
         self._claimed_cards = set() # cards we claim
         self._knowledge= Knowledge() # cards claimed by others # this is handeled by game object. kinda jank
-        self._coins = 10
+        self._coins = 0
         self._cards = [] # current cards
         self._status = 'alive'
         
@@ -122,6 +122,20 @@ class Player():
         else:
             print("enter valid option (y/n)")
             return self.check_challenge(game)
+        
+    def check_block(self, game): # TODO ENVIRONTMENT
+        
+        knowledge = self.knowledge ### TODO this knowledge needs to be passed to environment
+        
+        # game asks player if player wants to contest the proposed action of the current player
+        block = input(f"\t\tDoes {self.name} want to block current action: (y/n)") #O
+        if block=="y":
+            return True
+        elif block=="n":
+            return False
+        else:
+            print("enter valid option (y/n)")
+            return self.check_block(game)
         
                 
     

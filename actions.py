@@ -165,3 +165,39 @@ class Exchange(Actions):
     def do(self, turn, game):
         print("Exchange action performed!")
 
+
+
+class BlockAction(Actions):
+    card = {}
+    def __init__(self, name="BlockAction"):
+        super().__init__(name)
+        self._blocks = None
+        
+    def __do(self):
+        return
+    
+    @property
+    def blocks(self):
+        return self._blocks
+
+class B_Foreign_Aid(BlockAction):
+    card = {'duke'}
+    def __init__(self, name="block_foreign_aid"):
+        super().__init__(name)
+        self._blocks = "foreign_aid"
+        
+class B_Assassinate(BlockAction):
+    card = {"contessa"}
+    def __init__(self, name="block_assassinate"):
+        super().__init__(name)
+        self._blocks = 'assassinate'
+        
+class B_Steal(BlockAction):
+    card = {'captain','ambassador'}
+    def __init__(self, name="block_steal"):
+        super().__init__(name)
+        self._blocks = 'steal'
+        
+
+    
+    
