@@ -182,8 +182,8 @@ class Exchange(Actions):
         print("\t\tExchange action performed!")
         
 
-    def select_bottom(self, player, game): ## UPDATE KNOWLEDGE OF PLAYER
-        card_name = input(f"\tSelect card to bottom {player.cards}")
+    def select_bottom(self, player, game): 
+        card_name = input(f"\tPlayer {player.name}: select card to bottom {player.cards}")
         cards = player.cards
         
         lo_names = [card.name for card in cards]

@@ -44,11 +44,6 @@ class Assassin(Card):
     def name(self):
         return self._name    
         
-    def assassinate(self, game, myplayer, otherplayer):
-        # add coins to gamebank (in game)
-        # remove coins from myplayer
-        # Attempt to kill otherplayer
-        pass
     
 
 class Ambassador(Card):
@@ -64,9 +59,7 @@ class Ambassador(Card):
     @property
     def name(self):
         return self._name
-        
-    def exchange(self, game, myplayer):
-        pass
+
         
 
 class Contessa(Card):
@@ -82,10 +75,7 @@ class Contessa(Card):
     @property
     def name(self):
         return self._name
-        
-        
-    def block_assassinate(self, game, myplayer, otherplayer):
-        pass
+
         
 
 class Duke(Card):
@@ -117,9 +107,6 @@ class Captain(Card):
     @property
     def name(self):
         return self._name
-
-    def steal(self, game, myplayer, otherplayer):
-        pass
 
         
     

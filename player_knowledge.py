@@ -16,13 +16,12 @@ class Knowledge:
 
         
     def __repr__(self):
-        result = f"""
-        ~~~~~~~ Player Knowledge ~~~~~~~
-        \tDeck Knowledge: {self.deck_knowledge} 
-        \tcards Knowledge: {self._cards}
-        \tOther Claims: {self._other_player_claims}
-        \tRevealed Cards {self._revealed_knowledge}
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = f"""~~~~~~~ Player Knowledge ~~~~~~~
+Deck Knowledge: {self.deck_knowledge} 
+Cards Knowledge: {self._cards}
+Other Claims: {self._other_player_claims}
+Revealed Cards: {self._revealed_knowledge}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
         return result
         
@@ -70,9 +69,9 @@ class Knowledge:
         self._revealed_knowledge = value
         
     # Add a card to deck_knowledge
-    def add_to_deck_knowledge(self, card, deck):
-        if card not in self._deck_knowledge:
-            self.deck_knowledge.append(card)
+    def add_to_deck_knowledge(self, card):
+        if card.name.lower() not in self._deck_knowledge:
+            self.deck_knowledge.append(card.name.lower())
 
     # Remove a card from deck_knowledge
     def reset_deck_knowledge(self): # May be wrong because there is still knowledge after a shuffle but model will hopefully learn
@@ -80,12 +79,14 @@ class Knowledge:
 
     # Add a card to cards
     def add_to_cards(self, card):
-        self.cards.append(card.name)
+        self.cards.append(card.name.lower())
 
     # Remove a card from cards
-    def remove_from_cards(self, card):
-        if card in self._cards:
-            self.cards.remove(card.name)
+    def remove_from_cards(self, action_str):
+        if action_str.lower() in self.cards:
+            print(self.cards)
+            self.cards.remove(action_str.lower())
+            print(self.cards)
 
     # Add a claim for a player in other_player_claims (adding a new claim or adding to an existing claim)
     def add_to_other_player_claims(self, player, claim):
@@ -100,7 +101,7 @@ class Knowledge:
 
     # Add a card to revealed_knowledge
     def add_to_revealed_knowledge(self, card):
-        self.revealed_knowledge.append(card)
+        self.revealed_knowledge.append(card.name.lower())
         
     def update_other_p_c_action(self, other_player): 
         """

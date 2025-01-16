@@ -83,6 +83,9 @@ Current Coins in Bank = {self._bank}
     @property
     def revealed_cards(self):
         return self._revealed_cards
+    @revealed_cards.setter
+    def revealed_cards(self, revealed_cards):
+        self._revealed_cards = revealed_cards
   
     @property
     def actions(self):
@@ -96,7 +99,7 @@ Current Coins in Bank = {self._bank}
     
     
     def add_to_revealed_cards(self, card):
-        self._revealed_cards = self._revealed_cards.append(card)
+        self.revealed_cards.append(card.name.lower())
     
     
     def _setup_deal(self): # initialize dealing of cards to players
@@ -151,8 +154,10 @@ Current Coins in Bank = {self._bank}
         pass
 
     def update_revealed_knowledge_for_players(self):
+        print(self.revealed_cards)
+        lo_names = [name for name in self.revealed_cards]
         for player in self.players:
-            player.knowledge.revealed_knowledge = self.revealed_cards
+            player.knowledge.revealed_knowledge = lo_names
 
     def update_order_after_death(self): # should go into game object
         players = self.players

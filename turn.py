@@ -13,8 +13,10 @@ class Turn:
         # Indent each player properly by prepending "   " to each player's name
         players_list = "\n   ".join([str(player) for player in self.other_players])
         players_list = "   " + players_list  # Ensure the first player is indented too
-        result= f"""
+        result=f"""
+{"+"*40}
 Current player: {str(self.current_player)}
+{"+"*40}
 Turn order after player:
 {players_list}
 """
@@ -83,7 +85,6 @@ Turn order after player:
 
         if challenge.is_action_challengable(): # if action can be challenged 
             challenge.challenge_round()
-            print(f'Challenge status {challenge.status}')
             
         ###### RESULT OF CHALLENGE
         if challenge.status == 1:

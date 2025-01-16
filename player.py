@@ -108,6 +108,7 @@ class Player():
     def put_card_on_bottom(self, card, game): # TODO KNOWLEDGE
         self.cards.remove(card)
         self.knowledge.remove_from_cards(card)
+        self.knowledge.add_to_deck_knowledge(card)
         game.deck.add_to_bottom(card)
         print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
 
@@ -185,8 +186,12 @@ class Player():
         
         # add card to revealed card list in game
         revealed_card.state='revealed'
-        game.revealed_cards.append(revealed_card)
+        game.add_to_revealed_cards(revealed_card)
         game.update_revealed_knowledge_for_players()
+        
+        # update self knowledge
+        set_actions = revealed_card.REAL_ACTIONS
+        [self.knowledge.remove_from_cards(action_str) for action_str in set_actions]
         
         # Remove the claimed action from this player's claimed actions
         [self.remove_claimed_action(ac) for ac in revealed_card.REAL_ACTIONS] #removes

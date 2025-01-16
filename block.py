@@ -97,12 +97,14 @@ class Block:
                 
     def block_duel(self):
         target_player = self.turn.current_action.target_player
-
         
         if target_player.check_block(self): # compares player knowledge to game state and asks if they want to block most recent action #TODO
             print(f"\tPlayer {target_player.name} blocks action")
-                
+            
             block_action = self.BLOCK_ACTION_MAP[self.turn.current_action.name]() # get an instance of the blocking action required
+            
+            # add block action to claimed actions
+            target_player.add_claimed_action(block_action)
                 
             #make a new challenge where the current player is the player that just blocked
             challenge = Challenge(game = self.game, 
