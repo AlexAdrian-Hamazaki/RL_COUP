@@ -1,19 +1,20 @@
 
 import numpy as np
 from card import Card
+from player_knowledge import Knowledge
+
 class Player():
     def __init__(self, name:str):
         self._name = name
-        self._known_cards = [] # cards we know and where they are (deck or face-up by another player)
-        self._known_deck_order = [] # cards we know are in deck and where they are
         self._claimed_cards = set() # cards we claim
-        self._others_claimed_actions = [] # cards claimed by others # this is handeled by game object. kinda jank
-        self._coins = 0
+        self._knowledge= Knowledge() # cards claimed by others # this is handeled by game object. kinda jank
+        self._coins = 10
         self._cards = [] # current cards
         self._status = 'alive'
         
     def __repr__(self):
         return f"""Player {str(self.name)}, Cards {str(len(self.cards))}, Coins {str(self.coins)}"""
+    
         
     @property
     def name(self):
@@ -23,20 +24,6 @@ class Player():
         self._name = value
     
     @property
-    def known_cards(self):
-        return self._known_cards
-    @known_cards.setter
-    def known_cards(self, value: list):
-        self._known_cards = value
-    
-    @property
-    def known_deck_order(self):
-        return self._known_deck_order
-    @known_deck_order.setter
-    def known_deck_order(self, value: list):
-        self._known_deck_order = value
-    
-    @property
     def claimed_cards(self):
         return self._claimed_cards
     @claimed_cards.setter
@@ -44,11 +31,11 @@ class Player():
         self._claimed_cards = value
     
     @property
-    def others_claimed_actions(self):
-        return self._others_claimed_actions
-    @others_claimed_actions.setter
-    def others_claimed_actions(self, value): #TODO Handle player-card relationships. Maybe make a dict here for player:claimed cards?
-        self._others_claimed_actions = value
+    def knowledge(self):
+        return self._knowledge
+    @knowledge.setter
+    def knowledge(self, knowledge): 
+        self._knowledge = knowledge
     
     @property
     def coins(self):
@@ -74,12 +61,17 @@ class Player():
     def status(self, status):
         self._status = status
         
-    
+
     def draw_card(self, game):
         card = game.deck.deck[0]
         card.status = 'hand'
+        # draw card
         self.cards.append(card)
+        # remove card from top of deck
         game.deck.remove_top_card()
+        # add to player knowledge
+        self.knowledge.add_to_cards(card)
+        
         
         
     def take_coins(self, game, n):
@@ -108,23 +100,28 @@ class Player():
         self.claimed_cards.add(action)
     def remove_claimed_action(self, action):
         self.claimed_cards.add(action)
-
         
-        
-    def update_others_curr_ac(self, action, player): 
-        # updates the "other players" knowledge of what the current player
-        # is claiming
-        # self is the other player in this case
-        dic_other_claimed_cards = self.others_claimed_actions # keys are playernames and values is a set of their claimed cards
-        current_players_claimed_cards = dic_other_claimed_cards[player.name]
-        current_players_claimed_cards.append(action)
-        # update knowledge of players cards
-        dic_other_claimed_cards[player.name] = current_players_claimed_cards
-        self.others_claimed_actions = dic_other_claimed_cards
+    def update_other_p_c_action(self, other_player): 
+        self.knowledge.update_other_p_c_action(other_player)
         
     def put_card_on_bottom(self, card, game):
         self.cards.remove(card)
+        self.knowledge.remove_from_cards(card)
         game.deck.add_to_bottom(card)
+        
+    def check_challenge(self, game): # TODO ENVIRONTMENT
+        
+        knowledge = self.knowledge ### TODO this knowledge needs to be passed to environment
+        
+        # game asks player if player wants to contest the proposed action of the current player
+        contest = input(f"\t\tDoes {self.name} want to contest current action: (y/n)") #O
+        if contest=="y":
+            return True
+        elif contest=="n":
+            return False
+        else:
+            print("enter valid option (y/n)")
+            return self.check_challenge(game)
         
                 
     
@@ -161,17 +158,27 @@ class Player():
         if found == False:
             print(f"\tInvalid card name selected, you dont have that card: {lo_names}")
             return self.lose_life(game)
-                
+        
+        # Hand now becomes n-1 size
         self.cards = updated_list
+        
+        # add card to revealed card list in game
         revealed_card.state='revealed'
-        [self.remove_claimed_action(ac) for ac in revealed_card.REAL_ACTIONS] # may fail here
         game.revealed_cards.append(revealed_card)
+        game.update_revealed_knowledge_for_players()
+        
+        # Remove the claimed action from this player's claimed actions
+        [self.remove_claimed_action(ac) for ac in revealed_card.REAL_ACTIONS] #removes
+        # Update each player's knowledge of this player's claimed actions
+        game.update_claims(player = game.turn.current_player, other_players = game.turn.other_players)
+        
+        # Check to see if player is dead
         self.check_death(game)
     
     def check_death(self, game):
         # if player is dead, update the turn order
         if len(self.cards)==0:
-            print(f"Player {self.name} is out of influence")
+            print(f"~~~~~~~~~~Player {self.name} is out of influence~~~~~~~~~~")
             self.status = 'dead'
             game.update_order_after_death()
 

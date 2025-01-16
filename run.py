@@ -15,7 +15,7 @@ def main():
     
     while game.on:
         
-        game.next_players_turn()
+        game.next_turn()
     
     
 if __name__ == "__main__":
