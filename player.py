@@ -62,7 +62,7 @@ class Player():
         self._status = status
         
 
-    def draw_card(self, game):
+    def draw_card(self, game):## UPDATE KNOWLEDGE OF PLAYER
         card = game.deck.deck[0]
         card.status = 'hand'
         # draw card
@@ -71,6 +71,7 @@ class Player():
         game.deck.remove_top_card()
         # add to player knowledge
         self.knowledge.add_to_cards(card)
+        print(f"\t\t\tPlayer {self.name} draws a card")
         
         
         
@@ -84,7 +85,7 @@ class Player():
         except ValueError as e:
             return 0 #action failed flag. #TODO
         
-    def discard_coin(self, game, n:int):
+    def discard_coins(self, game, n:int):
         try:
             if self.coins <= n:
                 raise ValueError(f"\tNot enough coins to discard {n}")
@@ -104,10 +105,12 @@ class Player():
     def update_other_p_c_action(self, other_player): 
         self.knowledge.update_other_p_c_action(other_player)
         
-    def put_card_on_bottom(self, card, game):
+    def put_card_on_bottom(self, card, game): # TODO KNOWLEDGE
         self.cards.remove(card)
         self.knowledge.remove_from_cards(card)
         game.deck.add_to_bottom(card)
+        print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
+
         
     def check_challenge(self, game): # TODO ENVIRONTMENT
         
@@ -123,23 +126,27 @@ class Player():
             print("enter valid option (y/n)")
             return self.check_challenge(game)
         
-    def check_block(self, game): # TODO ENVIRONTMENT
+    def check_block(self, block): ### UPDATE KNOWLEDGE OF PLAYER
         
         knowledge = self.knowledge ### TODO this knowledge needs to be passed to environment
+        current_action = block.turn.current_action
+        
+        blockable_cards = block.BLOCKABLE_CARDS[current_action.name]
         
         # game asks player if player wants to contest the proposed action of the current player
-        block = input(f"\t\tDoes {self.name} want to block current action: (y/n)") #O
-        if block=="y":
+        block_status = input(f"\t\tDoes {self.name} want to block the {current_action} action?: (y/n)") #O
+        if block_status=="y":
+            block.declared_blocker = input(f"With what card?: {blockable_cards}" )
             return True
-        elif block=="n":
+        elif block_status=="n":
             return False
         else:
             print("enter valid option (y/n)")
-            return self.check_block(game)
+            return self.check_block(block)
         
                 
     
-    def lose_life(self, game): 
+    def lose_life(self, game):  ## UPDATE KNOWLEDGE OF PLAYER
         """Player loses a life
         Handles the following:
         removal of lost life from claimed cards
@@ -152,7 +159,7 @@ class Player():
 
         Returns:
             _type_: _description_
-        """
+        """ 
         player_cards = self.cards
         lo_names = set([card.name for card in player_cards])
         card_name = input(f"\tPlayer {self.name} choose to lose one of {lo_names}").strip().lower()

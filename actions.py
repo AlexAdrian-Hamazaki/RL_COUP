@@ -123,7 +123,7 @@ class Coup(ActionsWTarget):
         target_player = self.target_player
         if target_player is None:
             raise ValueError("Something went wrong in selecting target player")
-        player.discard_coin(game, 7)  # Cost of coup
+        player.discard_coins(game, 7)  # Cost of coup
         target_player.lose_life(game)
         print(f"Player {player.name} performs a coup against {target_player.name}!")
 
@@ -137,7 +137,7 @@ class Tax(Actions):
 
         player = turn.current_player
         player.take_coins(game,3)
-        print(f"\tPlayer {player.name} collects tax!")
+        print(f"\t\tPlayer {player.name} collects tax!")
 
 
 class Assassinate(ActionsWTarget):
@@ -146,7 +146,11 @@ class Assassinate(ActionsWTarget):
         super().__init__(name)  # Initialize the parent class (Actions)
 
     def do(self, turn, game):
-        print("Assassination action performed!")
+        player = turn.current_player
+        target = self.target_player
+        player.discard_coins(game, 3)
+        target.lose_life(game)
+        print("\t\tAssassination action performed!")
 
 class Steal(ActionsWTarget):
     card = {"captain"}
@@ -154,7 +158,11 @@ class Steal(ActionsWTarget):
         super().__init__(name)  # Initialize the parent class (Actions)
     
     def do(self, turn, game):
-        print("Steal action performed!")
+        player = turn.current_player
+        target = self.target_player
+        target.discard_coins(game, 2)
+        player.take_coins(game, 2)
+        print("\t\tSteal action performed!")
 
 
 class Exchange(Actions):
@@ -163,8 +171,28 @@ class Exchange(Actions):
         super().__init__(name)  # Initialize the parent class (Actions)
         
     def do(self, turn, game):
-        print("Exchange action performed!")
+        player = turn.current_player
+    
+        player.draw_card(game)
+        player.draw_card(game)
+        
+        self.select_bottom(player, game)
+        self.select_bottom(player, game)
+        
+        print("\t\tExchange action performed!")
+        
 
+    def select_bottom(self, player, game): ## UPDATE KNOWLEDGE OF PLAYER
+        card_name = input(f"\tSelect card to bottom {player.cards}")
+        cards = player.cards
+        
+        lo_names = [card.name for card in cards]
+        if not card_name in lo_names:
+            print("Invalid Selection")
+            return self.select_bottom(player,game)
+        
+        card_index = lo_names.index(card_name)        
+        player.put_card_on_bottom(cards[card_index], game)
 
 
 class BlockAction(Actions):

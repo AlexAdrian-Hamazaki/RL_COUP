@@ -10,7 +10,7 @@ import numpy as np
 def main():
     print("Game Begin")
 
-    game = Game(4)
+    game = Game(2)
 
     
     while game.on:

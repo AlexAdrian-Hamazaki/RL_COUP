@@ -35,11 +35,8 @@ class Game:
                             "assassinate":Assassinate,
                             "steal":Steal,
                             "exchange":Exchange}
-        self._block_action_map =  {"Block_Foreign_Aid":B_Foreign_Aid,
-                                   "Block_Assassinate":B_Assassinate,
-                                   "Block_Steal":B_Steal}
-        
-    
+
+
         print(f"""Initialized game with {len(self.players)} players""")
         
         
@@ -96,6 +93,8 @@ Current Coins in Bank = {self._bank}
     
     
     
+    
+    
     def add_to_revealed_cards(self, card):
         self._revealed_cards = self._revealed_cards.append(card)
     
@@ -116,6 +115,7 @@ Current Coins in Bank = {self._bank}
                 player.take_coins(self, 2)
                 n+=1
                 
+        
     def _setup_other_claimed_action_dicts(self, player):
         player_int = player.name
         players = self.players
@@ -133,7 +133,9 @@ Current Coins in Bank = {self._bank}
     def next_turn(self):
         self.turn.next_turn(self)
         if self.n_players==1:
+            print(f"Player {self.players} wins")
             self.on=False
+            
             
     def update_claims(self, player, other_players):
         """

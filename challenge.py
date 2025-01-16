@@ -103,8 +103,8 @@ class Challenge:
         #first the current player reveals if they have the card required to do the action
         if self.can_rev_cc(): # if they have the card they claim this will be true
             self.challenge_fails()
-            self.challenge_status = 'failed'
+            self.status = 0
         else: # the current player does not have the card they claim to have the power for
             self.challenge_succeeds()
-            self.challenge_status = 'successful'
+            self.status = 1
             

@@ -83,6 +83,7 @@ Turn order after player:
 
         if challenge.is_action_challengable(): # if action can be challenged 
             challenge.challenge_round()
+            print(f'Challenge status {challenge.status}')
             
         ###### RESULT OF CHALLENGE
         if challenge.status == 1:
@@ -91,6 +92,7 @@ Turn order after player:
         elif challenge.status == 0:  # if challenge failed. This means that the player that challenged lost a life
             # and the action still goes through
             self.do(game)
+            return
             
     
         #### BLOCKING OPTION
@@ -102,14 +104,21 @@ Turn order after player:
                           turn=self)
             
             if block.is_action_blockable():
-                block.block_round()
+                if self.current_action.name == "foreign_aid":
+                    block.block_round()
+                else:
+                    block.block_duel() # blocking for asssinate/steal
                 
             if block.status == 1: #block was a success so the active player will not do the action
                 return
-            elif block.status == 0: #block failed
+            elif block.status == 0: #block failed, action happens anyways
                 self.do(game)
+                return
             elif block.status == None: # no one chose to block
                 self.do(game)
+                return
+            return
+            
 
 
     def claim_action(self, player, game):
@@ -143,12 +152,15 @@ Turn order after player:
             return self.claim_action(player, game)
         
         if action_instance.has_target: # if action has a target
-            target_player = input(f"\n\tWhat player do you want to target?: {[player.name for player in self.other_players]}")
+            input_target_player = input(f"\n\tWhat player do you want to target?: {[player.name for player in self.other_players]}")
             try:
-                if game.get_player_by_name(target_player): # ensure valid player was targeted and get player object
-                    action_instance.target_player = game.get_player_by_name(target_player) # set target in the action instance
+
+                if input_target_player in [str(player.name) for player in self.other_players]: # ensure valid player was targeted and get player object
+                    action_instance.target_player = game.get_player_by_name(input_target_player) # set target in the action instance
+                else:
+                    raise ValueError
             except ValueError as e:
-                print("\t\tInvalid player selection")
+                print("\t\tInvalid player selection, try again")
                 return self.claim_action(player, game)
 
         # update turn to store claimed action
