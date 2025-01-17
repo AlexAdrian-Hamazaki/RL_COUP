@@ -52,7 +52,7 @@ mamba activate coup
 
 I coded this game to get some practice with OOP. Here is a map of my brainstorming of the rules of the game. This directly impacted how I chose my objects
 
-[[image.png]]
+![map](image.png)
 
 
 I also coded this to eventually train a RL model on the game.
