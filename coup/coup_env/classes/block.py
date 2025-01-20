@@ -1,5 +1,5 @@
-from challenge import Challenge
-from actions import B_Steal, B_Foreign_Aid, B_Assassinate
+from .challenge import Challenge
+from .actions import B_Steal, B_Foreign_Aid, B_Assassinate
 class Block:
     
     # keys are the .name of blockable actions

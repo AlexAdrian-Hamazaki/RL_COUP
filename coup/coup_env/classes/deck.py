@@ -1,5 +1,5 @@
 import numpy as np                
-from card import *
+from .card import *
 class Deck():
     def __init__(self):
         dukes = [Duke() for _ in range(3)]

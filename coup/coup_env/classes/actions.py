@@ -1,5 +1,6 @@
-from player import Player
-from card import Card
+from .player import Player
+from .card import Card
+
 class Actions:
     # each person will have an action doing class?
     ALLOWED_ACTIONS = [

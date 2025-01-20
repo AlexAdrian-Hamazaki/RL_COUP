@@ -1,6 +1,6 @@
 import textwrap
-from challenge import Challenge
-from block import Block
+from .challenge import Challenge
+from .block import Block
 
 class Turn:
     def __init__(self):

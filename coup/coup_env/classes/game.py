@@ -1,18 +1,18 @@
 import numpy as np
-from actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal
-from card import Assassin, Captain, Contessa, Ambassador, Duke
-from challenge import Challenge
-from player import Player
-from deck import Deck
-from bank import CoinBank
-from turn import Turn
+from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal
+from .card import Assassin, Captain, Contessa, Ambassador, Duke
+from .challenge import Challenge
+from .player import Player
+from .deck import Deck
+from .bank import CoinBank
+from .turn import Turn
 import textwrap
+
 class Game:
-    
     
     def __init__(self, n_players):
         self._n_players = n_players
-        self._action_n =0
+        self._action_n = 0
         self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck

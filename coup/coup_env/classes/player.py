@@ -1,7 +1,7 @@
 
 import numpy as np
-from card import Card
-from player_knowledge import Knowledge
+from .card import Card
+from .player_knowledge import Knowledge
 
 class Player():
     def __init__(self, name:str):
