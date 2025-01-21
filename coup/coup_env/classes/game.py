@@ -12,7 +12,6 @@ class Game:
     
     def __init__(self, n_players):
         self._n_players = n_players
-        self._action_n = 0
         self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck
@@ -39,8 +38,6 @@ class Game:
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
         self.update_knowledge()
-
-
         print(f"""Initialized game with {len(self.players)} players""")
         
         

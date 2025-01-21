@@ -6,8 +6,11 @@ def main():
 
     env = CoupEnv(4)
     env.reset()
-    env.reset()
-    env.reset()
+
+    action = 0
+    observation, reward, terminated, truncated, info = env.step(0)
+    
+    
 
     
     

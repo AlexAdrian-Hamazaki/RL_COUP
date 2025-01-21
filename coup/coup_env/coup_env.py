@@ -118,31 +118,7 @@ class CoupEnv(gym.Env):
         
         print(observation)
         return observation
-        
-        # if action_type == "chellenge_action": # challenge action is able to be selected
-        #     mycards = self.game.turn.current_player.cards
-        #     mymoney = self.game.turn.current_player.coins
-        #     myclaims = self.game.turn.current_player.claimed_cards
-        #     my_deck_knowledge = self.game.turn.current_player.deck_knowledge # fix this
-        #     others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        #     others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        #     revealed = self.game.revealed_cards
-        #     turn_order = self.game.turn_order
-        #     action_player = self.game.turn.current_player.name
-        #     current_base_action = self.game.turn.current_action
-        #     target_player = self.game.turn.current_action.target_player
-        # if action_type == "block_action":
-        #     mycards = self.game.turn.current_player.cards
-        #     mymoney = self.game.turn.current_player.coins
-        #     myclaims = self.game.turn.current_player.claimed_cards
-        #     my_deck_knowledge = self.game.turn.current_player.deck_knowledge # fix this
-        #     others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        #     others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        #     revealed = self.game.revealed_cards
-        #     turn_order = self.game.turn_order
-        #     action_player = self.game.turn.current_player.name
-        #     current_base_action = self.game.turn.current_action
-        #     target_player = self.game.turn.current_action.target_player
+    
 
     
     def reset(self, seed=None, options=None):
@@ -162,26 +138,45 @@ class CoupEnv(gym.Env):
         return observation
         
     
-    def step(self, actions):
-        """Takes an action by the current agent (specified by agent_selection)
-        
-        Actions are chosen via Q behavioir policy (or randomly depending on epsilon)
-        
-        Depending on the action, the following env parameters will need to be updated
-        - player knowledge (obseration space)
-            - turn order
-            - n coins of players
-            - revealed cards
-            - player's cards
-            - players life
-            
-        
-
-
+    def step(self, action):
+        """Takes an action by the current agent
+        returns observation, reward, termination_flag, truncation_flag, and info dict
+W
         Args:
-            actions (_type_): _description_
+            actions (int): action to take
         """
-        pass
+        #first make the step through the action
+        self.game.turn.step(action)
+        
+        # then get the observation of the new environment
+        observation = self._get_obs()
+        
+        # then get info on if we've terminated
+        terminated = not self.game.on
+        
+        # then get the reward for stepping/terminating
+        # Reward Rules
+            # +10 if we win (termination flag)
+            # +1 if we get money
+            # +5 if we kill someone
+        reward = self.get_reward()
+        
+        # then get any additional info and truncation flag
+        return observation, reward, terminated, False, {}
+        
+    def get_reward(self):
+        reward = 0
+        return reward
+    
+        
+        
+        
+        
+
+
+        return observation, reward, terminated, False, info
+
+
 
     def render(self):
         pass

@@ -66,8 +66,6 @@ class Actions:
     def has_target(self, value):
         self._has_target = value  # Update the _has_target attribute
 
-
-
     def perform_action(self):
         print("Performing a general action!")
         
@@ -130,7 +128,7 @@ class Coup(ActionsWTarget):
 
 
 class Tax(Actions):
-    card = {"duke"}
+    card = "duke"
     def __init__(self, name='tax'):
         super().__init__(name)  # Initialize the parent class (Actions)
     
@@ -142,7 +140,7 @@ class Tax(Actions):
 
 
 class Assassinate(ActionsWTarget):
-    card = {"assassin"}
+    card = "assassin"
     def __init__(self, name='assassinate'):
         super().__init__(name)  # Initialize the parent class (Actions)
 
@@ -154,7 +152,7 @@ class Assassinate(ActionsWTarget):
         print("\t\tAssassination action performed!")
 
 class Steal(ActionsWTarget):
-    card = {"captain"}
+    card = "captain"
     def __init__(self, name='steal'):
         super().__init__(name)  # Initialize the parent class (Actions)
     
@@ -167,7 +165,7 @@ class Steal(ActionsWTarget):
 
 
 class Exchange(Actions):
-    card = {"ambassador"}
+    card = "ambassador"
     def __init__(self, name='exchange'):
         super().__init__(name)  # Initialize the parent class (Actions)
         
@@ -197,7 +195,7 @@ class Exchange(Actions):
 
 
 class BlockAction(Actions):
-    card = {}
+    card = ''
     def __init__(self, name="BlockAction"):
         super().__init__(name)
         self._blocks = None
@@ -210,25 +208,25 @@ class BlockAction(Actions):
         return self._blocks
 
 class B_Foreign_Aid(BlockAction):
-    card = {'duke'}
+    card = 'duke'
     def __init__(self, name="block_foreign_aid"):
         super().__init__(name)
         self._blocks = "foreign_aid"
         
 class B_Assassinate(BlockAction):
-    card = {"contessa"}
+    card = "contessa"
     def __init__(self, name="block_assassinate"):
         super().__init__(name)
         self._blocks = 'assassinate'
         
 class B_Steal_Ambassador(BlockAction):
-    card = {'ambassador'}
+    card = 'ambassador'
     def __init__(self, name="block_steal_amb"):
         super().__init__(name)
         self._blocks = 'steal'
         
 class B_Steal_Captain(BlockAction):
-    card = {'captain'}
+    card = 'captain'
     def __init__(self, name="block_steal_cap"):
         super().__init__(name)
         self._blocks = 'steal'
