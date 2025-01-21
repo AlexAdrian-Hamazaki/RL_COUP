@@ -71,7 +71,6 @@ class Player():
         game.deck.remove_top_card()
         # add to player knowledge
         self.knowledge.add_to_cards(card)
-        print(f"\t\t\tPlayer {self.name} draws a card")
         
         
         

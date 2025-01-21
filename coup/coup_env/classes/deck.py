@@ -26,4 +26,3 @@ class Deck():
         self.deck = np.append(self.deck, card)
     def shuffle(self):
         np.random.shuffle(self._deck)  # Shuffle in place, no need to assign it back
-        print("\t\tDeck Shuffled")

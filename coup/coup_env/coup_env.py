@@ -73,7 +73,6 @@ class CoupEnv(gym.Env):
         self._action_space_map = dict(zip([n for n in range(len(self._actions))],
                                           [self._actions]))
         self.action_space = Discrete(len(self._actions))
-        print("INITIATED COUP ENV") 
         
     def _get_obs(self):
         """Function that actually returns an observation given the state of the game
