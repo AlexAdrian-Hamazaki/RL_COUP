@@ -4,10 +4,10 @@ from .card import Card
 from .player_knowledge import Knowledge
 
 class Player():
-    def __init__(self, name:str, n_players:int):
+    def __init__(self, name:str):
         self._name = name
         self._claimed_cards = set() # cards we claim
-        self._knowledge= Knowledge(self.n_players) # cards claimed by others # this is handeled by game object. kinda jank
+        self._knowledge= Knowledge() # cards claimed by others # this is handeled by game object. kinda jank
         self._coins = 0
         self._cards = [] # current cards
         self._status = 'alive'

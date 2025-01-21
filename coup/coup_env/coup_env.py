@@ -24,14 +24,10 @@ class CoupEnv(gym.Env):
         self.n_players = n_players
         self.player_ints = range(n_players)
         self.game = Game(self.n_players)
-        self.game.turn.update_player_turns() # init first turn
         
         self.players = list(range(n_players))  # [0, 1, 2, ..., n_players-1]
         self.turn_order_permutations = [self.players[i:] + self.players[:i] for i in range(self.n_players)]
         self.turn_order_permutation_map = dict(zip([n for n in range(len(self.turn_order_permutations))], self.turn_order_permutations))
-        
-        
-        
         
         # not sure if needed
         self._card_names = ['assassin','ambassador', 'duke', 'contessa', 'captain']
@@ -71,17 +67,12 @@ class CoupEnv(gym.Env):
             "action_type": Discrete(3), # for action masking
         })
         
-        # this is the workhorse. this sample method.
-        print(f"Sampling Observation Space {self.observation_space.sample()}")
         
         # action space stays sime. Masking happens later
         self._actions = self.game.actions.ALLOWED_ACTIONS + list(self.game.actions.CHALLENGABLE_ACTIONS) + ["challenge"]
         self._action_space_map = dict(zip([n for n in range(len(self._actions))],
                                           [self._actions]))
         self.action_space = Discrete(len(self._actions))
-        
-        print(f"Sampling action {self.action_space.sample()}")
-        
         print("INITIATED COUP ENV") 
         
     def _get_obs(self):
@@ -90,21 +81,27 @@ class CoupEnv(gym.Env):
         Returns:
             _type_: _description_
         """
+        
         action_type = self.game.turn.action_type # what type of action is able to be selected here
-        mycards = self.game.turn.current_player.cards # need to 
-        mymoney = self.game.turn.current_player.coins
-        myclaims = self.game.turn.current_player.claimed_cards
-        my_deck_knowledge = self.game.turn.current_player.deck_knowledge 
-        others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
-        others_money = self.game.turn.current_player.knowledge.others_coins
+        mycards = self.game.turn.current_chooser.cards # need to 
+        mymoney = self.game.turn.current_chooser.coins
+        myclaims = self.game.turn.current_chooser.claimed_cards
+        my_deck_knowledge = self.game.turn.current_chooser.knowledge.deck_knowledge 
+        others_claims = self.game.turn.current_chooser.knowledge.other_player_claims # turn this into cards instead of actions
+        others_n_cards = self.game.turn.current_chooser.knowledge.other_player_n_cards # turn this into cards instead of actions
+        others_money = self.game.turn.current_chooser.knowledge.other_player_n_coins
+        
         revealed = self.game.revealed_cards
-        turn_order = self.game.turn_order
+        turn_order = self.game.turn.turn_order
+        
         base_action_player = self.game.turn.current_base_player.name
         current_base_action = self.game.turn.current_base_action
-        base_action_target_player = self.game.turn.current_base_action.target_player
+        if self.game.turn.action_type == "challenge_action" or self.game.turn.action_type == "block_action":
+            base_action_target_player = self.game.turn.current_base_action.target_player
+        else:
+            base_action_target_player = None
         
-        return {
+        observation = {
             "action_type": action_type, #base_action, challenge_action, or block_action
             "mycards": mycards,
             "mymoney": mymoney,
@@ -119,6 +116,9 @@ class CoupEnv(gym.Env):
             "current_base_action": current_base_action,
             "target_player": base_action_target_player,
             }
+        
+        print(observation)
+        return observation
         
         # if action_type == "chellenge_action": # challenge action is able to be selected
         #     mycards = self.game.turn.current_player.cards

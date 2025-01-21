@@ -1,11 +1,12 @@
 from .challenge import Challenge
-from .actions import B_Steal, B_Foreign_Aid, B_Assassinate
+from .actions import B_Steal_Ambassador, B_Foreign_Aid, B_Assassinate, B_Steal_Captain
 class Block:
     
     # keys are the .name of blockable actions
-    BLOCK_ACTION_MAP = {"foreign_aid":B_Foreign_Aid,
-                        "assassinate":B_Assassinate,
-                        "steal":B_Steal}
+    BLOCK_ACTION_MAP = {"b_foreign_aid":B_Foreign_Aid,
+                        "b_assassinate":B_Assassinate,
+                        "b_steal_amb":B_Steal_Ambassador,
+                        "b_steal_cap":B_Steal_Captain}
     BLOCKABLE_CARDS = {"foreign_aid":{'duke'},
                         "assassinate":{'contessa'},
                         "steal":{'captain','ambassador'}

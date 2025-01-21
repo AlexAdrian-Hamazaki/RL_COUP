@@ -6,18 +6,17 @@ class Knowledge:
     knowledge of what is in cards
     knowledge of what other players are claiming
     """
-    def __init__(self, n_players, deck_knowledge=None, cards=None,
+    def __init__(self, deck_knowledge=None, cards=None,
                  other_player_claims=None, other_player_n_cards = None,  other_player_n_coins=None,
                  revealed_knowledge=None,
                     ):
         # Initialize lists/dicts only if the arguments are None
-        self._deck_knowledge = deck_knowledge if deck_knowledge is not None else [['unknown'] * n_players]
+        self._deck_knowledge = deck_knowledge if deck_knowledge is not None else []
         self._cards = cards if cards is not None else []
         self._other_player_claims = other_player_claims if other_player_claims is not None else {}
-        self._other_player_n_cards = other_player_n_cards if other_player_n_cards is not None else 2
+        self._other_player_n_cards = other_player_n_cards if other_player_n_cards is not None else {}
         self._other_player_n_coins = other_player_n_coins if other_player_n_coins is not None else {}
         self._revealed_knowledge = revealed_knowledge if revealed_knowledge is not None else []
-
         
     def __repr__(self):
         result = f"""~~~~~~~ Player Knowledge ~~~~~~~
@@ -72,19 +71,45 @@ Revealed Cards: {self._revealed_knowledge}
     def revealed_knowledge(self, value):
         self._revealed_knowledge = value
         
-# Getter for revealed_knowledge
+    # Getter for _other_player_n_coins
     @property
     def other_player_n_coins(self):
         return self._other_player_n_coins
 
-    # Setter for revealed_knowledge
+    # Setter for _other_player_n_coins
     @other_player_n_coins.setter
     def other_player_n_coins(self, value):
+        if not isinstance(value, int) or value < 0:
+            raise ValueError("other_player_n_coins must be a non-negative integer")
+        self._other_player_n_coins = value
+        
+        # Getter for _other_player_n_cards
+    @property
+    def other_player_n_cards(self):
+        return self._other_player_n_cards
+
+    # Setter for _other_player_n_cards
+    @other_player_n_cards.setter
+    def other_player_n_cards(self, value):
+        if not isinstance(value, dict):
+            raise ValueError("other_player_n_cards must be a dictionary")
+        self._other_player_n_cards = value
+
+    # Getter for _other_player_n_coins
+    @property
+    def other_player_n_coins(self):
+        return self._other_player_n_coins
+
+    # Setter for _other_player_n_coins
+    @other_player_n_coins.setter
+    def other_player_n_coins(self, value):
+        if not isinstance(value, int) or value < 0:
+            raise ValueError("other_player_n_coins must be a non-negative integer")
         self._other_player_n_coins = value
         
         
     def init_deck_knowledge(self, deck):
-        self.deck_knowledge = [['unknown'] * len(deck.deck)]
+        self.deck_knowledge = ['unknown'] * len(deck.deck)
         
     # Add a card to deck_knowledge
     def add_to_deck_knowledge(self, card):

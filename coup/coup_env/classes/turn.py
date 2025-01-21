@@ -3,36 +3,16 @@ from .challenge import Challenge
 from .block import Block
 
 class Turn:
-    def __init__(self):
-        self._current_player = None
-        self._turn_order_index = -1
-        self._current_action = None 
-        self._other_players = None
-        self._action_type = None
-        
-        
-    def __repr__(self):
-        # Indent each player properly by prepending "   " to each player's name
-        players_list = "\n   ".join([str(player) for player in self.other_players])
-        players_list = "   " + players_list  # Ensure the first player is indented too
-        result=f"""
-{"+"*40}
-Current player: {str(self.current_player)}
-{"+"*40}
-Turn order after player:
-{players_list}
-"""
-        return result
-
-    # Getter and Setter for _current_player
-    @property
-    def current_player(self):
-        return self._current_player
-
-    @current_player.setter
-    def current_player(self, value):
-        self._current_player = value
-
+    def __init__(self, players):
+        self._turn_order_index = 0
+        self._current_base_player = players[self.turn_order_index]
+        self._current_base_action = None 
+        self._current_other_players = players[self.turn_order_index+1:] + players[:self.turn_order_index]
+        self._turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
+    
+        self._action_type = 'base_action'
+        self._current_chooser = self.current_base_player
+    
     # Getter and Setter for _turn_order_index
     @property
     def turn_order_index(self):
@@ -40,36 +20,69 @@ Turn order after player:
 
     @turn_order_index.setter
     def turn_order_index(self, value):
+        if not isinstance(value, int) or value < 0:
+            raise ValueError("turn_order_index must be a non-negative integer")
         self._turn_order_index = value
 
-    # Getter and Setter for _current_action
+    # Getter and Setter for _current_base_player
     @property
-    def current_action(self):
-        return self._current_action
+    def current_base_player(self):
+        return self._current_base_player
 
-    @current_action.setter
-    def current_action(self, value):
-        self._current_action = value
+    @current_base_player.setter
+    def current_base_player(self, value):
+        self._current_base_player = value  # Add validation if needed (e.g., check if `value` is in players)
 
-    # Getter and Setter for _other_players
+    # Getter and Setter for _current_base_action
     @property
-    def other_players(self):
-        return self._other_players
+    def current_base_action(self):
+        return self._current_base_action
 
-    @other_players.setter
-    def other_players(self, value):
-        self._other_players = value
-        
-        # Getter and Setter for _other_players
+    @current_base_action.setter
+    def current_base_action(self, value):
+        self._current_base_action = value
+
+    # Getter and Setter for _current_other_players
+    @property
+    def current_other_players(self):
+        return self._current_other_players
+
+    @current_other_players.setter
+    def current_other_players(self, value):
+        if not isinstance(value, list):
+            raise ValueError("current_other_players must be a list")
+        self._current_other_players = value
+
+    # Getter and Setter for _turn_order
+    @property
+    def turn_order(self):
+        return self._turn_order
+
+    @turn_order.setter
+    def turn_order(self, value):
+        if not isinstance(value, list):
+            raise ValueError("turn_order must be a list")
+        self._turn_order = value
+
+    # Getter and Setter for _action_type
     @property
     def action_type(self):
         return self._action_type
 
     @action_type.setter
     def action_type(self, value):
-        self._action_type = value
+        self._action_type = value  # Add validation if you expect specific types or values
+
+    # Getter and Setter for _current_chooser
+    @property
+    def current_chooser(self):
+        return self._current_chooser
+
+    @current_chooser.setter
+    def current_chooser(self, value):
+        self._current_chooser = value 
         
-        
+    
     #####################
     #####  CLASS FUNCTIONS
     ####################
@@ -77,10 +90,7 @@ Turn order after player:
     def next_turn(self, game): 
         # upticks turn index, and updates game object accordingly
         self.update_player_turns(game)
-        
-        # print message indicating status of game
-        print(game)
-        print(self)
+
         
         current_player = self.current_player
         
@@ -186,7 +196,7 @@ Turn order after player:
         self.current_action = action_instance
         
         # update this player's claimed actions
-        player.add_claimed_action(action_instance.name)
+        player.add_claimed_card(action_instance.card)
         # Update game to update every player's knowledge of what every player is claiming
         game.update_claims(player, self.other_players)
 

@@ -1,5 +1,5 @@
 import numpy as np
-from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal
+from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal_Ambassador, B_Steal_Captain
 from .card import Assassin, Captain, Contessa, Ambassador, Duke
 from .challenge import Challenge
 from .player import Player
@@ -18,7 +18,7 @@ class Game:
         self._deck.shuffle() # shuffle deck
         self._revealed_cards = []
         self._bank = CoinBank()
-        self._turn = Turn()
+        self._turn = Turn(self.players)
         
         self.on = True # true if game is live, False if game is over
         
@@ -38,6 +38,7 @@ class Game:
         
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
+        self.update_knowledge()
 
 
         print(f"""Initialized game with {len(self.players)} players""")
@@ -169,23 +170,23 @@ Current Coins in Bank = {self._bank}
 
         for player1 in players:
             for player2 in players:
-                if player1.name == player2:
+                if player1.name == player2.name:
                     continue
                 player1.update_other_p_c_card(player2) # updates player 1's knowledge of player 2's claimed cards
     def update_all_players_n_coins(self):
         players = self.players
         for player1 in players:
             for player2 in players:
-                if player1.name == player2:
+                if player1.name == player2.name:
                     continue
-                player1.update_other_p_coins(player2) # updates player 1's knowledge of player 2's claimed cards
+                player1.update_other_p_n_coins(player2) # updates player 1's knowledge of player 2's claimed cards
     def update_all_players_n_cards(self):
         players = self.players
         for player1 in players:
             for player2 in players:
-                if player1.name == player2:
+                if player1.name == player2.name:
                     continue
-                player1.update_other_p_ncards(player2) # updates player 1's knowledge of player 2's claimed cards
+                player1.update_other_p_n_cards(player2) # updates player 1's knowledge of player 2's claimed cards
 
         
         
