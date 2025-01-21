@@ -8,6 +8,8 @@ class Turn:
         self._turn_order_index = -1
         self._current_action = None 
         self._other_players = None
+        self._action_type = None
+        
         
     def __repr__(self):
         # Indent each player properly by prepending "   " to each player's name
@@ -58,6 +60,16 @@ Turn order after player:
     def other_players(self, value):
         self._other_players = value
         
+        # Getter and Setter for _other_players
+    @property
+    def action_type(self):
+        return self._action_type
+
+    @action_type.setter
+    def action_type(self, value):
+        self._action_type = value
+        
+        
     #####################
     #####  CLASS FUNCTIONS
     ####################
@@ -76,14 +88,17 @@ Turn order after player:
         print(current_player.knowledge)
         # current player claims a certian action        
         self.claim_action(current_player, game)
+        self.action_type="base_action"
         
         #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
         challenge = Challenge(game=game, 
                               current_action = self.current_action,
                               current_player = current_player,
                               challenging_player = None)
-
+        self.challenge = challenge
+        
         if challenge.is_action_challengable(): # if action can be challenged 
+            self.action_type="challenge_action"
             challenge.challenge_round()
             
         ###### RESULT OF CHALLENGE
@@ -103,8 +118,11 @@ Turn order after player:
             # block will need information about whose is making the action, what the action is (if the action is blockable), and Will eventually need to check their knowledge
             block = Block(game=game,
                           turn=self)
+            self.block = block
             
             if block.is_action_blockable():
+                self.action_type="block_action"
+
                 if self.current_action.name == "foreign_aid":
                     block.block_round()
                 else:

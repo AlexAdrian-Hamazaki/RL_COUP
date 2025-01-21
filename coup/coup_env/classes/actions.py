@@ -221,9 +221,15 @@ class B_Assassinate(BlockAction):
         super().__init__(name)
         self._blocks = 'assassinate'
         
-class B_Steal(BlockAction):
-    card = {'captain','ambassador'}
-    def __init__(self, name="block_steal"):
+class B_Steal_Ambassador(BlockAction):
+    card = {'ambassador'}
+    def __init__(self, name="block_steal_amb"):
+        super().__init__(name)
+        self._blocks = 'steal'
+        
+class B_Steal_Captain(BlockAction):
+    card = {'captain'}
+    def __init__(self, name="block_steal_cap"):
         super().__init__(name)
         self._blocks = 'steal'
         

@@ -35,6 +35,9 @@ class Game:
                             "assassinate":Assassinate,
                             "steal":Steal,
                             "exchange":Exchange}
+        
+        # init deck knowledge
+        [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
 
 
         print(f"""Initialized game with {len(self.players)} players""")
@@ -140,25 +143,52 @@ Current Coins in Bank = {self._bank}
             self.on=False
             
             
-    def update_claims(self, player, other_players):
+    def update_knowledge(self):
         """
-        After some action is made by player
-        this function updates the knowledge of all other players that the current player made the action 
-        """        
-        # update the other player's knowledge if this players claimed actions
-        [other_player.update_other_p_c_action(player) for other_player in other_players]
-
-
-    def update_deck_knowledge(self):
-        # updates deck knowledge
-        pass
+        After some action is made by player, be it challenge, claim, or block
+        
+        This function updates all player's knowledge of the following
+        
+        Revealed cards
+        all other players claimed cards
+        all other players n coins
+        all other players n cards
+        """
+        self.update_revealed_knowledge_for_players()
+        self.update_all_players_claimed_cards()
+        self.update_all_players_n_coins()
+        self.update_all_players_n_cards()
 
     def update_revealed_knowledge_for_players(self):
-        print(self.revealed_cards)
         lo_names = [name for name in self.revealed_cards]
         for player in self.players:
             player.knowledge.revealed_knowledge = lo_names
+            
+    def update_all_players_claimed_cards(self):
+        players = self.players
 
+        for player1 in players:
+            for player2 in players:
+                if player1.name == player2:
+                    continue
+                player1.update_other_p_c_card(player2) # updates player 1's knowledge of player 2's claimed cards
+    def update_all_players_n_coins(self):
+        players = self.players
+        for player1 in players:
+            for player2 in players:
+                if player1.name == player2:
+                    continue
+                player1.update_other_p_coins(player2) # updates player 1's knowledge of player 2's claimed cards
+    def update_all_players_n_cards(self):
+        players = self.players
+        for player1 in players:
+            for player2 in players:
+                if player1.name == player2:
+                    continue
+                player1.update_other_p_ncards(player2) # updates player 1's knowledge of player 2's claimed cards
+
+        
+        
     def update_order_after_death(self): # should go into game object
         players = self.players
         # first we find the index of the player that is dead

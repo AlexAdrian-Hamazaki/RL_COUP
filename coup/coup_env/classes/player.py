@@ -4,10 +4,10 @@ from .card import Card
 from .player_knowledge import Knowledge
 
 class Player():
-    def __init__(self, name:str):
+    def __init__(self, name:str, n_players:int):
         self._name = name
         self._claimed_cards = set() # cards we claim
-        self._knowledge= Knowledge() # cards claimed by others # this is handeled by game object. kinda jank
+        self._knowledge= Knowledge(self.n_players) # cards claimed by others # this is handeled by game object. kinda jank
         self._coins = 0
         self._cards = [] # current cards
         self._status = 'alive'
@@ -97,13 +97,21 @@ class Player():
             return 0 #action failed flag.
     
     
-    def add_claimed_action(self, action):
-        self.claimed_cards.add(action)
-    def remove_claimed_action(self, action):
-        self.claimed_cards.add(action)
+    def add_claimed_card(self, card):
+        self.claimed_cards.add(card)
+    def remove_claimed_card(self, card):
+        self.claimed_cards.add(card)
         
-    def update_other_p_c_action(self, other_player): 
-        self.knowledge.update_other_p_c_action(other_player)
+    def update_other_p_c_card(self, other_player): 
+        self.knowledge.update_other_p_c_card(other_player)
+        
+    def update_other_p_n_cards(self, other_player): 
+        self.knowledge.update_other_p_n_cards(other_player)
+        
+    def update_other_p_n_coins(self, other_player): 
+        self.knowledge.update_other_p_n_coins(other_player)
+
+    
         
     def put_card_on_bottom(self, card, game): # TODO KNOWLEDGE
         self.cards.remove(card)

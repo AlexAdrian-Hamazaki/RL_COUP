@@ -24,6 +24,8 @@ class CoupEnv(gym.Env):
         self.n_players = n_players
         self.player_ints = range(n_players)
         self.game = Game(self.n_players)
+        self.game.turn.update_player_turns() # init first turn
+        
         self.players = list(range(n_players))  # [0, 1, 2, ..., n_players-1]
         self.turn_order_permutations = [self.players[i:] + self.players[:i] for i in range(self.n_players)]
         self.turn_order_permutation_map = dict(zip([n for n in range(len(self.turn_order_permutations))], self.turn_order_permutations))
@@ -49,7 +51,7 @@ class CoupEnv(gym.Env):
             'mycards': MultiDiscrete([5, 5]), # pairs of cards here
             "mymoney": Discrete(n=14), # can have 0-13 coins
             "myclaims": MultiBinary([5]),
-            "deck_knowledge": MultiDiscrete([6] * deck_size, start=[-1]*deck_size), #Order o deck, -1 indicates we do not know what the card is. # TODO figure out how to limit this to only correct observations like (-1,-1,2,4
+            "my_deck_knowledge": MultiDiscrete([6] * deck_size, start=[-1]*deck_size), #Order o deck, -1 indicates we do not know what the card is. # TODO figure out how to limit this to only correct observations like (-1,-1,2,4
             # Maybe will need to throw out bad obs?
             "others_claims": Dict(dict(zip([f'player{n}' for n in range(self.n_players)], 
                                       [MultiBinary([5]) for _ in range(self.n_players)]))), # Player_int: Text # dict of text spaces for what others are claiming,
@@ -70,7 +72,7 @@ class CoupEnv(gym.Env):
         })
         
         # this is the workhorse. this sample method.
-        print(self.observation_space.sample())
+        print(f"Sampling Observation Space {self.observation_space.sample()}")
         
         # action space stays sime. Masking happens later
         self._actions = self.game.actions.ALLOWED_ACTIONS + list(self.game.actions.CHALLENGABLE_ACTIONS) + ["challenge"]
@@ -83,8 +85,70 @@ class CoupEnv(gym.Env):
         print("INITIATED COUP ENV") 
         
     def _get_obs(self):
-        pass # TODO
+        """Function that actually returns an observation given the state of the game
+
+        Returns:
+            _type_: _description_
+        """
+        action_type = self.game.turn.action_type # what type of action is able to be selected here
+        mycards = self.game.turn.current_player.cards # need to 
+        mymoney = self.game.turn.current_player.coins
+        myclaims = self.game.turn.current_player.claimed_cards
+        my_deck_knowledge = self.game.turn.current_player.deck_knowledge 
+        others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        others_money = self.game.turn.current_player.knowledge.others_coins
+        revealed = self.game.revealed_cards
+        turn_order = self.game.turn_order
+        base_action_player = self.game.turn.current_base_player.name
+        current_base_action = self.game.turn.current_base_action
+        base_action_target_player = self.game.turn.current_base_action.target_player
         
+        return {
+            "action_type": action_type, #base_action, challenge_action, or block_action
+            "mycards": mycards,
+            "mymoney": mymoney,
+            "myclaims": myclaims,
+            "my_deck_knowledge": my_deck_knowledge,
+            "others_claims": others_claims,
+            "others_n_cards": others_n_cards,
+            "others_money": others_money,
+            "revealed": revealed,
+            "turn_order": turn_order,
+            "base_action_player": base_action_player,
+            "current_base_action": current_base_action,
+            "target_player": base_action_target_player,
+            }
+        
+        # if action_type == "chellenge_action": # challenge action is able to be selected
+        #     mycards = self.game.turn.current_player.cards
+        #     mymoney = self.game.turn.current_player.coins
+        #     myclaims = self.game.turn.current_player.claimed_cards
+        #     my_deck_knowledge = self.game.turn.current_player.deck_knowledge # fix this
+        #     others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        #     others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        #     revealed = self.game.revealed_cards
+        #     turn_order = self.game.turn_order
+        #     action_player = self.game.turn.current_player.name
+        #     current_base_action = self.game.turn.current_action
+        #     target_player = self.game.turn.current_action.target_player
+        # if action_type == "block_action":
+        #     mycards = self.game.turn.current_player.cards
+        #     mymoney = self.game.turn.current_player.coins
+        #     myclaims = self.game.turn.current_player.claimed_cards
+        #     my_deck_knowledge = self.game.turn.current_player.deck_knowledge # fix this
+        #     others_claims = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        #     others_n_cards = self.game.turn.current_player.knowledge.other_player_claims # turn this into cards instead of actions
+        #     revealed = self.game.revealed_cards
+        #     turn_order = self.game.turn_order
+        #     action_player = self.game.turn.current_player.name
+        #     current_base_action = self.game.turn.current_action
+        #     target_player = self.game.turn.current_action.target_player
+
+        
+        
+        
+
         
 
     def reset(self, seed=None, options=None):
