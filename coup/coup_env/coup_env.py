@@ -74,6 +74,8 @@ class CoupEnv(gym.Env):
                                           [self._actions]))
         self.action_space = Discrete(len(self._actions))
         
+        print(self.action_space)
+        
     def _get_obs(self):
         """Function that actually returns an observation given the state of the game
 
@@ -99,6 +101,11 @@ class CoupEnv(gym.Env):
             base_action_target_player = self.game.turn.current_base_action.target_player
         else:
             base_action_target_player = None
+            
+            
+        # Compute action mask
+        action_mask = self._compute_action_mask(action_type, mymoney, base_action_player,
+                                  current_base_action, base_action_target_player)
         
         observation = {
             "action_type": action_type, #base_action, challenge_action, or block_action
@@ -113,13 +120,25 @@ class CoupEnv(gym.Env):
             "turn_order": turn_order,
             "base_action_player": base_action_player,
             "current_base_action": current_base_action,
-            "target_player": base_action_target_player,
+            "base_action_target_player": base_action_target_player,
+            'action_mas': action_mask
             }
         
         print(observation)
         return observation
     
-
+    def _compute_action_mask(self, action_type, mymoney, base_action_player,
+                                  current_base_action, base_action_target_player):
+        if action_type == 'base_action':
+            
+            
+            
+        elif action_type == "challenge_action":
+            pass
+        elif action_type == "block_action":
+            pass
+    def _is_valid_action(self, action):
+        pass
     
     def reset(self, seed=None, options=None):
         """Resets the game to a fresh game with freshly dealt cards
@@ -141,10 +160,14 @@ class CoupEnv(gym.Env):
     def step(self, action):
         """Takes an action by the current agent
         returns observation, reward, termination_flag, truncation_flag, and info dict
-W
         Args:
             actions (int): action to take
         """
+        # check if action is valid
+        if not self._is_action_valid(action):
+            raise ValueError(f"Invalid action {action} for the current state.")
+
+        
         #first make the step through the action
         self.game.turn.step(action)
         
@@ -168,15 +191,7 @@ W
         reward = 0
         return reward
     
-        
-        
-        
-        
-
-
-        return observation, reward, terminated, False, info
-
-
+    
 
     def render(self):
         pass

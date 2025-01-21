@@ -95,13 +95,8 @@ Current Coins in Bank = {self._bank}
     def action_map(self):
         return self._action_map
     
-    
-    
-    
-    
     def add_to_revealed_cards(self, card):
         self.revealed_cards.append(card.name.lower())
-    
     
     def _setup_deal(self): # initialize dealing of cards to players
         print("Dealing Setup Cards")
@@ -185,8 +180,7 @@ Current Coins in Bank = {self._bank}
                     continue
                 player1.update_other_p_n_cards(player2) # updates player 1's knowledge of player 2's claimed cards
 
-        
-        
+
     def update_order_after_death(self): # should go into game object
         players = self.players
         # first we find the index of the player that is dead
@@ -202,6 +196,14 @@ Current Coins in Bank = {self._bank}
         self.players = players[i_dead+1:] + players[:i_dead]
         
         self.turn.update_after_death(i_dead)
+        
+    def step(self):
+        """
+        Leverage the turn class to            
+        make a step to the next game state
+        """
+        self.turn.step(self)
+        
     
             
 
