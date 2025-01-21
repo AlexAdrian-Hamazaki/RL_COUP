@@ -145,25 +145,20 @@ class CoupEnv(gym.Env):
         #     current_base_action = self.game.turn.current_action
         #     target_player = self.game.turn.current_action.target_player
 
-        
-        
-        
-
-        
-
+    
     def reset(self, seed=None, options=None):
         """Resets the game to a fresh game with freshly dealt cards
 
         Args:
             seed (_type_, optional): _description_. Defaults to None.
             options (_type_, optional): _description_. Defaults to None.
-        """
-        
+        """    
+        # We need the following line to seed self.np_random
+        super().reset(seed=seed)
+    
         self.game = Game(n_players=self.n_players)
         
-        players = self.game.players
-        
-        observation = {player: player.knowledge for player in players}
+        observation = self._get_obs()
         
         return observation
         
