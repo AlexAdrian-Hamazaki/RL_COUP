@@ -72,11 +72,18 @@ class CoupEnv(gym.Env):
         # this is the workhorse. this sample method.
         print(self.observation_space.sample())
         
+        # action space stays sime. Masking happens later
+        self._actions = self.game.actions.ALLOWED_ACTIONS + list(self.game.actions.CHALLENGABLE_ACTIONS) + ["challenge"]
+        self._action_space_map = dict(zip([n for n in range(len(self._actions))],
+                                          [self._actions]))
+        self.action_space = Discrete(len(self._actions))
         
-        # self.action_space = gym.spaces.Discrete({
-            
-        # })
+        print(f"Sampling action {self.action_space.sample()}")
         
+        print("INITIATED COUP ENV") 
+        
+    def _get_obs(self):
+        pass # TODO
         
         
 
