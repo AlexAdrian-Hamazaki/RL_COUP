@@ -8,7 +8,8 @@ class Actions:
         "assassinate", "steal", "exchange"
     ]
     CHALLENGABLE_ACTIONS = {'tax','assassinate','steal','exchange',
-                           'block_assassinate','block_foreign_aid','block_steal'}
+                           'block_assassinate','block_foreign_aid','block_steal_cap',
+                           "block_steal_amb"}
     
     ACTION_COST = {"coup":7, 'assassinate':3}
     

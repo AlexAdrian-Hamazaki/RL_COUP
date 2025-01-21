@@ -69,12 +69,13 @@ class CoupEnv(gym.Env):
         
         
         # action space stays sime. Masking happens later
-        self._actions = self.game.actions.ALLOWED_ACTIONS + list(self.game.actions.CHALLENGABLE_ACTIONS) + ["challenge"]
+        self._actions = list(set(self.game.actions.ALLOWED_ACTIONS + list(self.game.actions.CHALLENGABLE_ACTIONS) + ["challenge"]))
+        self._actions.sort()
         self._action_space_map = dict(zip([n for n in range(len(self._actions))],
-                                          [self._actions]))
+                                          [action for action in self._actions]))
         self.action_space = Discrete(len(self._actions))
         
-        print(self.action_space)
+        print(self._action_space_map)
         
     def _get_obs(self):
         """Function that actually returns an observation given the state of the game
@@ -104,8 +105,7 @@ class CoupEnv(gym.Env):
             
             
         # Compute action mask
-        action_mask = self._compute_action_mask(action_type, mymoney, base_action_player,
-                                  current_base_action, base_action_target_player)
+        action_mask = self._compute_action_mask()
         
         observation = {
             "action_type": action_type, #base_action, challenge_action, or block_action
@@ -121,24 +121,55 @@ class CoupEnv(gym.Env):
             "base_action_player": base_action_player,
             "current_base_action": current_base_action,
             "base_action_target_player": base_action_target_player,
-            'action_mas': action_mask
+            'action_mask': action_mask
             }
         
         print(observation)
         return observation
     
-    def _compute_action_mask(self, action_type, mymoney, base_action_player,
-                                  current_base_action, base_action_target_player):
+    def _compute_action_mask(self):
+        action_type = self.game.turn.action_type # what type of action is able to be selected here
+        mymoney = self.game.turn.current_chooser.coins
+        current_base_action = self.game.turn.current_base_action
+
+        
+        # init mask of 0s to represent valid actions
+        mask = np.array([0] * len(self._actions))
+        
         if action_type == 'base_action':
-            
-            
-            
+            if mymoney>10:
+                good_indexes = [6,0]
+            elif mymoney >=7:
+                # if at base action, enable base actions
+                good_indexes = [7,8,9,10,11,0,6]
+            elif mymoney >=3:
+                good_indexes = [7,8,9,10,11,0]
+            else:
+                good_indexes = [7,8,9,10,11]
+            mask[good_indexes] = 1
+            return mask
+                
         elif action_type == "challenge_action":
-            pass
+            good_indexes = [5]
+            mask[good_indexes] = 1
+            return mask
+        
         elif action_type == "block_action":
-            pass
-    def _is_valid_action(self, action):
-        pass
+            if current_base_action == 'steal':
+                good_indexes = [3,4]
+                mask[good_indexes]
+                return mask
+            elif current_base_action == 'foreign_aid':
+                good_indexes = [2]
+                mask[good_indexes]
+                return mask
+            elif current_base_action == 'assassinate':
+                good_indexes = [1]
+                mask[good_indexes]
+                return mask
+            
+    def _is_action_valid(self, action):
+        return self._compute_action_mask()[action] == 1
     
     def reset(self, seed=None, options=None):
         """Resets the game to a fresh game with freshly dealt cards

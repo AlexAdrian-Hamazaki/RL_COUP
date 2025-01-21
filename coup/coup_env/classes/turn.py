@@ -87,6 +87,18 @@ class Turn:
     #####  CLASS FUNCTIONS
     ####################
     
+    def step(self, game):
+        """Depending on the game state defined in turn,
+        take 1 step to the next game state
+        
+        Sometimes game may receive updated values
+
+        Args:
+            game (_type_): game object
+        """
+        pass
+        
+    
     def next_turn(self, game): 
         # upticks turn index, and updates game object accordingly
         self.update_player_turns(game)
