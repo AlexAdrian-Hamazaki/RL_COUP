@@ -75,6 +75,8 @@ class CoupEnv(gym.Env):
                                           [action for action in self._actions]))
         self.action_space = MultiDiscrete([len(self._actions), self.n_players+1], start=[0,-1]) # first is action, second is target player, -1= No target
         
+        print(f"Action map")
+        print(self._action_space_map)
         
         # holds the previous observation
         self.last = self._get_obs().copy()
@@ -213,8 +215,6 @@ class CoupEnv(gym.Env):
         self.game.step(action, action_map)
         print("~~~~Obs2~~~~")
         print(self._get_obs())
-        
-        
         
         # then get the observation of the new environment
         observation = self._get_obs()
