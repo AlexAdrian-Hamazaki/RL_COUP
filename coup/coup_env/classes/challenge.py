@@ -41,13 +41,12 @@ class Challenge:
         action = self.current_action
         
         if any(action.name in c.REAL_ACTIONS for c in player_cards):
-            print("\t\tChallenge failed")
             return True
         else:
-            print("\t\tChallenge successful")
             return False
         
     def challenge_fails(self):
+        print("Challenge Failed")
         # Actions for player whoo was challenged 
         current_player = self.current_player
         game = self.game
@@ -68,6 +67,7 @@ class Challenge:
         self.challenging_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well    
         
     def challenge_succeeds(self):
+        print("Challenge Succeeds")
         # if challenge succeds, active player needs to reveal a card of their choice
         self.current_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well
 
@@ -75,17 +75,16 @@ class Challenge:
     def is_action_challengable(self):
         return self.current_action.challengable 
     
-    def duel(self, other_player):
-        print(f"\tPlayer {other_player.name} contests action")
-        self.challenging_player = other_player
+    def duel(self, challenging_player):
+        self.challenging_player = challenging_player
         self.execute_challenge() # cards are checked to see if contest is successfull
     
-    def challenge_round(self):
-        other_players = self.get_other_players()
-        for other_player in other_players:
-            if other_player.check_challenge(self): # compares player knowledge to game state and asks if they want to challenge most recent action
-                self.duel(other_player)
-                break
+    # def challenge_round(self):
+    #     other_players = self.get_other_players()
+    #     for other_player in other_players:
+    #         if other_player.check_challenge(self): # compares player knowledge to game state and asks if they want to challenge most recent action
+    #             self.duel(other_player)
+    #             break
             
     def get_other_players(self):
         players = self.game.players
@@ -103,8 +102,9 @@ class Challenge:
         #first the current player reveals if they have the card required to do the action
         if self.can_rev_cc(): # if they have the card they claim this will be true
             self.challenge_fails()
-            self.status = 0
+            self.current_action.do(self.current_player, self.game)
         else: # the current player does not have the card they claim to have the power for
             self.challenge_succeeds()
-            self.status = 1
+            
+
             

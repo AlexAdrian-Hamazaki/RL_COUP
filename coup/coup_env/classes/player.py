@@ -218,3 +218,24 @@ class Player():
 
 
 
+class Bot(Player):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def choose_base_action(self, lo_actions):
+        if not lo_actions:
+            raise ValueError("The list of actions is empty. Cannot choose an action.")
+        return np.random.choice(lo_actions)
+    
+    def choose_to_challenge(self):            
+        # TODO go through the challenges of the opposing bots. They will choose to challenge at at 10% probability, 40% if they are targeted
+        # and 100% if they know all 3 cards locations. 
+        
+        # for now 10% probability of challengiung
+        return np.random.random() < 0.5
+    
+    def choose_to_block(self):            
+        # go through the blocks of the opposing bots. They will choose to block if they have the card that can. Otherwise they will
+        # bluff at a 50% probability. And this will change depending on the action and if its targeting you or not.
+        # for now 50% prob of blocking
+        return np.random.random() < 0.5

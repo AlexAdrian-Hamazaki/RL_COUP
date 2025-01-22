@@ -2,7 +2,7 @@ import numpy as np
 from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal_Ambassador, B_Steal_Captain
 from .card import Assassin, Captain, Contessa, Ambassador, Duke
 from .challenge import Challenge
-from .player import Player
+from .player import Player, Bot
 from .deck import Deck
 from .bank import CoinBank
 from .turn import Turn
@@ -12,14 +12,17 @@ class Game:
     
     def __init__(self, n_players):
         self._n_players = n_players
-        self._players = [Player(n) for n in range(n_players)]
+        self._agent = Player(0)
+        self._bots = [Bot(n) for n in range(n_players-1)]
+        self._players = [self.agent] + self.bots
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck
         self._revealed_cards = []
         self._bank = CoinBank()
         self._turn = Turn(self.players)
         
-        self.on = True # true if game is live, False if game is over
+        self._win = False # true if agent won
+        self._lost = False # True if agent is dead
         
         # setup game
         self._setup_deal()    
@@ -68,6 +71,19 @@ Current Coins in Bank = {self._bank}
     def players(self, players):
         self._players = players
     @property
+    def agent(self):
+        return self._agent
+    @agent.setter
+    def agent(self, agent):
+        self._agent = agent
+
+    @property
+    def bots(self):
+        return self._bots
+    @bots.setter
+    def bots(self, bots):
+        self._bots = bots
+    @property
     def n_players(self):
         return self._n_players
     @n_players.setter
@@ -94,6 +110,19 @@ Current Coins in Bank = {self._bank}
     @property
     def action_map(self):
         return self._action_map
+    
+    @property
+    def win(self):
+        return self._win
+    @win.setter
+    def win(self, win):
+        self._win = win
+    @property
+    def lost(self):
+        return self._lost
+    @lost.setter
+    def lost(self, lost):
+        self._lost = lost
     
     def add_to_revealed_cards(self, card):
         self.revealed_cards.append(card.name.lower())
@@ -134,6 +163,15 @@ Current Coins in Bank = {self._bank}
         if self.n_players==1:
             print(f"Player {self.players} wins")
             self.on=False
+            
+    def assess_game_win(self):
+        """
+        Assess if the agent has won the game or lost it
+        """
+        if self.agent.cards == 0:
+            self.lost = True
+        elif len(self.players) == 1:
+            self.win = True
             
             
     def update_knowledge(self):
@@ -197,13 +235,14 @@ Current Coins in Bank = {self._bank}
         
         self.turn.update_after_death(i_dead)
         
-    def step(self):
+    def step(self, action, action_map):
         """
         Leverage the turn class to            
         make a step to the next game state
         """
-        self.turn.step(self)
-        
+        self.turn.step(action, action_map, self)
+        self.assess_game_win()
+
     
             
 

@@ -80,21 +80,23 @@ class Actions:
   
 # Subclasses for each action
 class Income(Actions):
+    card = "foreign_aid"
     def __init__(self, name='income'):
         super().__init__(name)  # Initialize the parent class (Actions)
         
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
         player.take_coins(game, 1)
         print(f"\tPlayer {player.name} takes income!")
 
 
 class Foreign_Aid(Actions):
+    card = "foreign_aid"
     def __init__(self, name='foreign_aid'):
         super().__init__(name)  # Initialize the parent class (Actions)
 
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
         player.take_coins(game, 2)
         print(f"{player.name} takes foreign aid!")
 
@@ -113,13 +115,15 @@ class ActionsWTarget(Actions):
     
 
 class Coup(ActionsWTarget):
+    card = "coup"
+
     def __init__(self, name='coup'):
         super().__init__(name)  # Initialize the parent class (Actions)
     def __repr__(self):
         return self.name
 
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
         target_player = self.target_player
         if target_player is None:
             raise ValueError("Something went wrong in selecting target player")
@@ -133,9 +137,9 @@ class Tax(Actions):
     def __init__(self, name='tax'):
         super().__init__(name)  # Initialize the parent class (Actions)
     
-    def do(self, turn, game):
+    def do(self, player, game):
 
-        player = turn.current_player
+        player = player
         player.take_coins(game,3)
         print(f"\t\tPlayer {player.name} collects tax!")
 
@@ -145,8 +149,8 @@ class Assassinate(ActionsWTarget):
     def __init__(self, name='assassinate'):
         super().__init__(name)  # Initialize the parent class (Actions)
 
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
         target = self.target_player
         player.discard_coins(game, 3)
         target.lose_life(game)
@@ -157,8 +161,8 @@ class Steal(ActionsWTarget):
     def __init__(self, name='steal'):
         super().__init__(name)  # Initialize the parent class (Actions)
     
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
         target = self.target_player
         target.discard_coins(game, 2)
         player.take_coins(game, 2)
@@ -170,8 +174,8 @@ class Exchange(Actions):
     def __init__(self, name='exchange'):
         super().__init__(name)  # Initialize the parent class (Actions)
         
-    def do(self, turn, game):
-        player = turn.current_player
+    def do(self, player, game):
+        player = player
     
         player.draw_card(game)
         player.draw_card(game)
