@@ -13,7 +13,7 @@ class Game:
     def __init__(self, n_players):
         self._n_players = n_players
         self._agent = Player(0)
-        self._bots = [Bot(n) for n in range(n_players-1)]
+        self._bots = [Bot(n) for n in range(1,n_players)]
         self._players = [self.agent] + self.bots
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck

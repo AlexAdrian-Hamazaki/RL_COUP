@@ -11,57 +11,52 @@ class Block:
                         "assassinate":{'contessa'},
                         "steal":{'captain','ambassador'}
     }
-    
-    
-    def __init__(self, game, turn):
+
+    def __init__(self, game, current_action, current_player, blocking_player):
         self._game = game
-        self._turn = turn
-        self._status = None
-        self._declared_blocker = None
-        
+        self._current_action = current_action
+        self._current_player = current_player
+        self._blocking_player = blocking_player
+
+    # Getter and Setter for _game
     @property
     def game(self):
-        """Getter for _game"""
         return self._game
 
     @game.setter
-    def game(self, game):
-        """Setter for _game"""
-        self._game = game
+    def game(self, value):
+        self._game = value
 
+    # Getter and Setter for _current_action
     @property
-    def turn(self):
-        """Getter for _turn"""
-        return self._turn
+    def current_action(self):
+        return self._current_action
 
-    @turn.setter
-    def turn(self, turn):
-        """Setter for _turn"""
-        self._turn = turn
-        
+    @current_action.setter
+    def current_action(self, value):
+        self._current_action = value
+
+    # Getter and Setter for _current_player
     @property
-    def status(self):
-        """Getter for _status"""
-        return self._status
+    def current_player(self):
+        return self._current_player
 
-    @status.setter
-    def status(self, status):
-        """Setter for _status"""
-        self._status = status
-        
+    @current_player.setter
+    def current_player(self, value):
+        self._current_player = value
+
+    # Getter and Setter for _blocking_player
     @property
-    def declared_blocker(self):
-        
-        return self._declared_blocker
+    def blocking_player(self):
+        return self._blocking_player
 
-    @declared_blocker.setter
-    def declared_blocker(self, declared_blocker):
-        self._declared_blocker = declared_blocker
-
+    @blocking_player.setter
+    def blocking_player(self, value):
+        self._blocking_player = value
         
     
     def is_action_blockable(self):
-        return self.turn.current_action.blockable
+        return self.current_action.blockable
 
     def block_round(self):
         

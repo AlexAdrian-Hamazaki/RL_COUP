@@ -8,12 +8,14 @@ class Turn:
         self._current_base_player = players[self.turn_order_index]
         self._current_base_action = None 
         self._current_base_action_target_int = None
+        self._current_base_action_challenger_int = None
         self._current_base_action_instance = None
         self._current_other_players = players[self.turn_order_index+1:] + players[:self.turn_order_index]
         self._turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
     
         self._action_type = 'base_action'
         self._current_chooser = self.current_base_player
+
     
     # Getter and Setter for _turn_order_index
     @property
@@ -34,6 +36,15 @@ class Turn:
     @current_base_player.setter
     def current_base_player(self, value):
         self._current_base_player = value  # Add validation if needed (e.g., check if `value` is in players)
+    
+    @property
+    def current_base_action_challenger_int(self):
+        return self._current_base_action_challenger_int
+
+    @current_base_action_challenger_int.setter
+    def current_base_action_challenger_int(self, value):
+        self._current_base_action_challenger_int = value 
+    
 
     # Getter and Setter for _current_base_action
     @property
@@ -48,7 +59,6 @@ class Turn:
     @property
     def current_other_players(self):
         return self._current_other_players
-
     @current_other_players.setter
     def current_other_players(self, value):
         if not isinstance(value, list):
@@ -165,7 +175,6 @@ class Turn:
         
         
         
-        game.assess_game_win()
         
         
     def claim_action(self):
@@ -207,15 +216,25 @@ class Turn:
         
         self.claim_action() # adds current base action to players claimed cards.
         
+        if not self.current_base_action_instance.challengable:
+            print("Action is not challengable or blockable, doing action")
+            self.current_base_action_instance.do(self.current_base_player, self.game)            
+            return 
+        
         # Do bot challenges
         for bot in self.game.bots:
             chal = bot.choose_to_challenge()
             if chal: 
-                # run through challenge. Depending on outcome, this brings game object to next
+                # run through challenge. Depending on outcome, this brings game object to next state
+                # because if an action is challenged than it cant be blocked. and if it is not challengable its not blockable
                 self.exe_challenge(bot, self.game)
                 return
             
-        assert False
+        if not self.current_base_action.blockable:
+            print("Action is not blockable, doing action")
+            self.current_base_action_instance.do(self.current_base_player, self.game)   
+            return
+            
         # do bot blockings (only done if no challenges occur)
         for bot in self.game.bots:
             block = bot.choose_to_block()
@@ -223,13 +242,12 @@ class Turn:
                 self.exe_block(bot, self.game)
                 # run through block Depending on outcome, this brings game object to next 
                 return
-        
-        # If we reach here, no blocks or challenges were done so we can just do action
-        self.current_base_action.do(self, self.game)            
+   
 
         
     def exe_challenge(self, bot, game)-> None:
-        """A challengs has happened
+        """
+        note. if action is actually not challengable, then this dones nothing
         
         Determines if the challenge is successful
         Executes the effect on the game of if the challenges was successful or not
@@ -248,18 +266,30 @@ class Turn:
                               current_player = current_player,
                               challenging_player = challenging_player)
         
-        if challenge.is_action_challengable(): # if action can be challenged 
-            challenge.duel(bot) 
-        else:
-            print("Action is not challengable. doing action")
-            current_action.do(current_player, game)
-            return 
+        challenge.duel(bot) 
+  
 
-            
-            
-    def exe_block(self):
-        pass
+    def exe_block(self, bot, game):
+        """
+        Note, if action is not blockable then nothing happens
         
+        A block has happened
+        Update game statuses. But because agent has to choose if they challenge or not, just returns the next step
+
+        Args:
+            bot (_type_): _description_
+            game (_type_): _description_
+        """
+        game = game
+        current_action = self.current_base_action_instance
+        current_player = self.current_base_player
+        blocking_player = bot
+
+        # then players can choose to block
+        # block will need information about whose is making the action, what the action is (if the action is blockable), and Will eventually need to check their knowledge
+        game.action_type = 'challenge_action'
+        game.challenging_player = bot.name
+
     
     def next_turn(self, game): 
         # upticks turn index, and updates game object accordingly
