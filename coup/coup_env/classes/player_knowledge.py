@@ -125,11 +125,9 @@ Revealed Cards: {self._revealed_knowledge}
         self.cards.append(card.name.lower())
 
     # Remove a card from cards
-    def remove_from_cards(self, action_str):
-        if action_str.lower() in self.cards:
-            print(self.cards)
-            self.cards.remove(action_str.lower())
-            print(self.cards)
+    def remove_from_cards(self, card):
+        if card.name.lower() in self.cards:
+            self.cards.remove(card.name.lower())
 
     # Add a claim for a player in other_player_claims (adding a new claim or adding to an existing claim)
     def add_to_other_player_claims(self, player, claim):

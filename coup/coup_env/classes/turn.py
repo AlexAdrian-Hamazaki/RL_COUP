@@ -130,50 +130,41 @@ class Turn:
         Args:
             game (_type_): game object
         """
-        self.game = game
-        self.current_base_player = game.agent # I need to re-think this. This is always going to be player 0
-        self.current_base_action = action_map[action[0]]
-        self.current_base_action_target_int = action[1]
-        
         if self.action_type == "base_action": #
-            self.exe_base_action()
-        
-        elif self.action_type == "challenge_action":
-            # if the agent is at a chellgen action. They may choose to challenge the action
-                    #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
-                    
-            # TODO, modify this to just be challenge of current player
-            # observation change is just that a player's claims have been updated and 
-            # that the action may be targeting someone
-            # and the action type. 
+            self.game = game
+            self.current_base_action = action_map[action[0]]
+            self.current_base_action_target_int = action[1]
             
-            challenge = Challenge(game=game, 
-                                current_action = self.current_action,
-                                current_player = current_player,
-                                challenging_player = None)
-            self.challenge = challenge
-            
-            if challenge.is_action_challengable(): # if action can be challenged 
-                self.action_type="challenge_action"
-                challenge.challenge_round()
-                
-            ###### RESULT OF CHALLENGE
-            if challenge.status == 1:
-                return # nothing hpapens if the contest was successfull. Action does not go through.
-                # handeling of lost life is handled in challenge_round
-            elif challenge.status == 0:  # if challenge failed. This means that the player that challenged lost a life
-                # and the action still goes through
-                self.do(game)
+            if self.current_base_player.type == 'agent':
+                self.exe_base_action()
+                self.reset_for_base_action()
                 return
             
-            # After the result of the challenge. If it was successfull then all bots can choose to block.
+            if self.current_base_player.type == 'bot': 
+                if self.action_type == 'base_action': # base action
+                    self.exe_bot_base_action() # just claims action and returns next observation state
+                    return 
+      
+        elif self.action_type == "challenge_action":             
+            if self.current_base_player.type == 'bot': # agent challenges
+                self.challenging_player = game.agent
+                self.challenge_action = action_map[action[0]]
+                self.challenge_action_target_int = action[1]
+                
+                if self.challenge_action == "challenge":
+                    print("Agent challenges bot")
+                    self.exe_challenge_action(self.challenging_player, self.game)
+                    self.action_type = "base_action" # next action will be base action
+                    return
+                else:
+                    print("Agent does not challenge bot")
+                    self.exe_bot_base_action() # just claims action and returns next observation state
+                    return
+                
+            if self.current_base_player.type == 'agent': # bot challenges
+                pass
 
-        elif self.action_type == "block_action":
-            # if the action type is block. the agent can choose to block the action
-            pass
-        
-        
-        
+            
         
         
         
@@ -222,15 +213,17 @@ class Turn:
             return 
         
         # Do bot challenges
-        for bot in self.game.bots:
+        for bot in self.game.turn.current_other_players:
             chal = bot.choose_to_challenge()
             if chal: 
                 # run through challenge. Depending on outcome, this brings game object to next state
                 # because if an action is challenged than it cant be blocked. and if it is not challengable its not blockable
-                self.exe_challenge(bot, self.game)
+                self.exe_challenge_action(bot, self.game)
+                self.update_player_turns()
+
                 return
             
-        if not self.current_base_action.blockable:
+        if not self.current_base_action_instance.blockable:
             print("Action is not blockable, doing action")
             self.current_base_action_instance.do(self.current_base_player, self.game)   
             return
@@ -241,11 +234,32 @@ class Turn:
             if block:
                 self.exe_block(bot, self.game)
                 # run through block Depending on outcome, this brings game object to next 
+                self.update_player_turns()
+
                 return
-   
+            
+    def exe_bot_base_action(self):
+        self.claim_action() # adds current base action to players claimed cards.
+        if not self.current_base_action_instance.challengable:
+            print("Action is not challengable or blockable, doing action")
+            self.current_base_action_instance.do(self.current_base_player, self.game)            
+            return 
+        
+        if self.action_type == 'challenge_action':
+            # agent chalenge has already been requested
+            self.current_base_action_instance.do(self.current_base_player, self.game)
+            self.action_type = "base_action"
+        elif self.action_type =="base_action":
+            # action is challengable
+            self.action_type = 'challenge_action'
+            
+        self.update_player_turns()
+        
+
+           
 
         
-    def exe_challenge(self, bot, game)-> None:
+    def exe_challenge_action(self, challenging_player, game)-> None:
         """
         note. if action is actually not challengable, then this dones nothing
         
@@ -258,7 +272,7 @@ class Turn:
         game = game
         current_action = self.current_base_action_instance
         current_player = self.current_base_player
-        challenging_player = bot
+        challenging_player = challenging_player
         
         #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
         challenge = Challenge(game=game, 
@@ -266,7 +280,7 @@ class Turn:
                               current_player = current_player,
                               challenging_player = challenging_player)
         
-        challenge.duel(bot) 
+        challenge.duel(challenging_player) 
   
 
     def exe_block(self, bot, game):
@@ -294,8 +308,6 @@ class Turn:
     def next_turn(self, game): 
         # upticks turn index, and updates game object accordingly
         self.update_player_turns(game)
-
-        
         current_player = self.current_player
         
         # print current players knowledge
@@ -353,14 +365,15 @@ class Turn:
             return
             
 
+        
 
 
-
-    def update_player_turns(self, game):
+    def update_player_turns(self):
         """Update the turn knowledge of the game object
         Updates self.current_player
         self.other_players is an ordered list indicating next players to go    
         """
+        game = self.game
         players = game.players
         n_players = game.n_players
         
@@ -369,10 +382,11 @@ class Turn:
         # handle turn order
         if self.turn_order_index == n_players:
             self.turn_order_index = 0 # reset order
-        self.current_player = players[self.turn_order_index]
+        self.current_base_player = players[self.turn_order_index]
+
         # print(f"Player {self.current_player.name}'s turn")
-        self.other_players  = players[self.turn_order_index+1:] + players[:self.turn_order_index]
-        
+        self.current_other_players  = players[self.turn_order_index+1:] + players[:self.turn_order_index]
+        self.turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
 
     def update_after_death(self, i_dead):
         # Case when player who dies its their turn
@@ -386,7 +400,19 @@ class Turn:
         elif i_dead < self._turn_order_index:
             self._turn_order_index-=1
             
+    def reset_for_base_action(self):
+        
+        self.current_base_action = None 
+        self.current_base_action_target_int = None
+        self.current_base_action_challenger_int = None
+        self.current_base_action_instance = None
+        self.action_type = 'base_action'
+        self.current_chooser = self.current_base_player
+        
     def do(self, game):
         # does action
         self.current_action.do(self, game)
+                
+                
+                
                 

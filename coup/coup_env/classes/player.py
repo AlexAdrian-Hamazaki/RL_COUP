@@ -4,6 +4,7 @@ from .card import Card
 from .player_knowledge import Knowledge
 
 class Player():
+    type = 'agent'
     def __init__(self, name:str):
         self._name = name
         self._claimed_cards = set() # cards we claim
@@ -112,12 +113,12 @@ class Player():
 
     
         
-    def put_card_on_bottom(self, card, game): # TODO KNOWLEDGE
+    def put_card_on_bottom(self, card, game): 
         self.cards.remove(card)
         self.knowledge.remove_from_cards(card)
         self.knowledge.add_to_deck_knowledge(card)
         game.deck.add_to_bottom(card)
-        print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
+        # print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
 
         
     def check_challenge(self, game): # TODO ENVIRONTMENT
@@ -170,24 +171,26 @@ class Player():
         """ 
         player_cards = self.cards
         lo_names = set([card.name for card in player_cards])
-        card_name = input(f"\tPlayer {self.name} choose to lose one of {lo_names}").strip().lower()
         
-        if Card.SHORT_KEYS.get(card_name): # if shorthand name was used, get full name
-            card_name = Card.SHORT_KEYS.get(card_name)
+        if self.type =='agent': # for now randomly selected. will make this learnable later. need to add more actions
+            print("Agent must lose life")
+            card = np.random.choice(player_cards)
+            card_name = card.name.lower()
+            
+        
+        if self.type == 'bot': # randomly remove a card if we
+            print("Bot must lose life")
+            card = np.random.choice(player_cards)
+            card_name = card.name.lower()
+
         
         updated_list = []
-        found = False
         for card in player_cards:
-            if card.name.lower() == card_name and found==False:
-                print(f"Player {self.name} reveals a {card_name}")
-                found = True
+            if card.name.lower() == card_name:
                 revealed_card = card
             else:
                 updated_list.append(card)
-        if found == False:
-            print(f"\tInvalid card name selected, you dont have that card: {lo_names}")
-            return self.lose_life(game)
-        
+
         # Hand now becomes n-1 size
         self.cards = updated_list
         
@@ -197,13 +200,11 @@ class Player():
         game.update_revealed_knowledge_for_players()
         
         # update self knowledge
-        set_actions = revealed_card.REAL_ACTIONS
-        [self.knowledge.remove_from_cards(action_str) for action_str in set_actions]
+        
+        self.knowledge.remove_from_cards(card)
         
         # Remove the claimed action from this player's claimed actions
-        [self.remove_claimed_action(ac) for ac in revealed_card.REAL_ACTIONS] #removes
-        # Update each player's knowledge of this player's claimed actions
-        game.update_claims(player = game.turn.current_player, other_players = game.turn.other_players)
+        [self.remove_claimed_card(ac) for ac in revealed_card.REAL_ACTIONS] #removes
         
         # Check to see if player is dead
         self.check_death(game)
@@ -219,6 +220,8 @@ class Player():
 
 
 class Bot(Player):
+    type = 'bot'
+    
     def __init__(self, name):
         super().__init__(name)
 

@@ -55,7 +55,7 @@ class Challenge:
         for card in current_player.cards:
             if current_action.name.lower() in card.REAL_ACTIONS: # if the action is allowed by the cards the current player has
                 current_player.put_card_on_bottom(card, game)
-                current_player.remove_claimed_action(current_action)
+                current_player.remove_claimed_card(current_action)
                 game.deck.shuffle()
                 current_player.draw_card(game)
                 success = True # the challenge 
