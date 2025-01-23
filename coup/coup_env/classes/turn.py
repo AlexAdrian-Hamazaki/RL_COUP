@@ -158,6 +158,7 @@ class Turn:
                     return
                 else:
                     print("Agent does not challenge bot")
+                    print(self.current_base_action)
                     self.exe_bot_base_action() # just claims action and returns next observation state
                     return
                 

@@ -43,6 +43,7 @@ class Game:
         self.update_knowledge()
         print(f"""Initialized game with {len(self.players)} players""")
         
+        self.next_action_type = "base_action"
         
     def __repr__(self):
         result = f"""
