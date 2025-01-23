@@ -235,7 +235,7 @@ class Bot(Player):
         # and 100% if they know all 3 cards locations. 
         
         # for now 10% probability of challengiung
-        return np.random.random() < 0
+        return np.random.random() < 0.5
     
     def choose_to_block(self):            
         # go through the blocks of the opposing bots. They will choose to block if they have the card that can. Otherwise they will
