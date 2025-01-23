@@ -344,19 +344,26 @@ class CoupEnv(AECEnv):
         
     
     def step(self, action: ActionType) -> None: # TODO
-        """Takes an action by the current agent
+        """Makes an action by the current agent
         
         Updates self.observations depending on a lot of things:
-        
-        if action type is base action
-            agent's claims change
-            action type changes from base action to challenge action
-        if action type is challenge action and baseplayer not current agent:
-            if agent chose to challenge, update game state
-            otherwise, pass
-        if action type is challenge and base player is current agent:
-            agent does their base action on game
-            agent changes action type to base action
+            if action type is base action
+                agent's claims change
+                action type changes from base action to challenge action
+            if action type is challenge action and baseplayer not current agent:
+                if agent chose to challenge, update game state
+                otherwise, pass
+            if action type is challenge and base player is current agent:
+                agent does their base action on game
+                agent changes action type to base action
+            
+        Updates
+        -rewards
+        -_cumulative_rewards
+        -terminations
+        -truncations
+        -infos
+        -agent_selection
         
         """
         if (
@@ -372,11 +379,26 @@ class CoupEnv(AECEnv):
         agent = self.agent_selection
         print(f"Current Agent {agent}")
         
+        # set cumulative rewards for this current agent for this turn to 0
+        self._cumulative_rewards[agent] = 0
+        
+        # store action of current agent
+        self.state[agent] = action
+        
+        print(self._agent_selector.is_last())
+        
+        ################################################################# 
+        ###################### STEP BLOCK ########################### 
+        ################################################################# 
+        
+        
+        
         
         # selects the next agent.
         self.agent_selection = self._agent_selector.next()
-        
-        
+        # Adds .rewards to ._cumulative_rewards
+        self._accumulate_rewards()
+
         return 
         
         
