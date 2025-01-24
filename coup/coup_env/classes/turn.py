@@ -3,7 +3,7 @@ from .challenge import Challenge
 from .block import Block
 
 class Turn:
-    def __init__(self, players):
+    def __init__(self, players, game):
         self._turn_order_index = 0
         self._current_base_player = players[self.turn_order_index]
         self._current_base_action = None 
@@ -13,9 +13,9 @@ class Turn:
         self._current_other_players = players[self.turn_order_index+1:] + players[:self.turn_order_index]
         self._turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
     
-        self._action_type = 'base_action'
+        self._next_action_type = 'claim_base_action'
         self._current_chooser = self.current_base_player
-
+        self.game = game
     
     # Getter and Setter for _turn_order_index
     @property
@@ -76,14 +76,14 @@ class Turn:
             raise ValueError("turn_order must be a list")
         self._turn_order = value
 
-    # Getter and Setter for _action_type
+    # Getter and Setter for _next_action_type
     @property
-    def action_type(self):
-        return self._action_type
+    def next_action_type(self):
+        return self._next_action_type
 
-    @action_type.setter
-    def action_type(self, value):
-        self._action_type = value  # Add validation if you expect specific types or values
+    @next_action_type.setter
+    def next_action_type(self, value):
+        self._next_action_type = value  # Add validation if you expect specific types or values
 
     # Getter and Setter for _current_chooser
     @property
@@ -130,7 +130,7 @@ class Turn:
         Args:
             game (_type_): game object
         """
-        if self.action_type == "base_action": #
+        if self.next_action_type == "base_action": #
             self.game = game
             self.current_base_action = action_map[action[0]]
             self.current_base_action_target_int = action[1]
@@ -141,11 +141,11 @@ class Turn:
                 return
             
             if self.current_base_player.type == 'bot': 
-                if self.action_type == 'base_action': # base action
+                if self.next_action_type == 'base_action': # base action
                     self.exe_bot_base_action() # just claims action and returns next observation state
                     return 
       
-        elif self.action_type == "challenge_action":             
+        elif self.next_action_type == "challenge_action":             
             if self.current_base_player.type == 'bot': # agent challenges
                 self.challenging_player = game.agent
                 self.challenge_action = action_map[action[0]]
@@ -154,7 +154,7 @@ class Turn:
                 if self.challenge_action == "challenge":
                     print("Agent challenges bot")
                     self.exe_challenge_action(self.challenging_player, self.game)
-                    self.action_type = "base_action" # next action will be base action
+                    self.next_action_type = "base_action" # next action will be base action
                     return
                 else:
                     print("Agent does not challenge bot")
@@ -165,54 +165,77 @@ class Turn:
             if self.current_base_player.type == 'agent': # bot challenges
                 pass
 
-            
-        
-        
-        
-    def claim_action(self):
+
+    def claim_base_action(self, agent, action):
         """
         Player claims an action and turn object is updated
         Turn object is updated to update each player's claimed actions
         """
-        current_player = self.current_base_player
-        current_action_target_int = self.current_base_action_target_int
-        action_str = self.current_base_action
+    
+        self.current_base_player_int = agent
+        self.current_base_player = self.game.players[agent]
         
-        if action_str not in self.game.actions.ALLOWED_ACTIONS:
-            raise ValueError("\t\tChose invalid action")
+        # get target player
+        self.current_target = self.game.players[list(action.keys())[0]]
+        # get str of current action
+        self.current_base_action_str = list(action.values())[0]
         
-        action_instance = self.game.action_map.get(action_str)()
+    
         
-        # should never be hit. handeled by coup_env
-        if not action_instance.check_coins(current_player.coins): # player does not have enough coins
+        # print(self.current_base_player)
+        # print(self.current_target)
+        # print(self.current_base_action_str)
+        
+        # get action instance
+        action_instance = self.game.action_map.get(self.current_base_action_str)()
+        # Set target of action instance
+        action_instance.target_player = self.current_target
+        
+        # ensure sufficient coins        
+        if not action_instance.check_coins(self.current_base_player.coins):
             print("\t\tInsufficient coins")
             raise ValueError("Insufficient Coins")
         
-        # update action instance with target if there is one
-        if current_action_target_int > -1: # if there is a target 
-            action_instance.target = current_action_target_int
-    
         # update turn to store claimed action instance
         self.current_base_action_instance = action_instance
         
         # update this player's claimed actions
-        current_player.add_claimed_card(action_instance.card)
+        self.current_base_player.add_claimed_card(action_instance.card)
         
         # Update game to update every player's knowledge of what every player is claiming
         self.game.update_knowledge()
     
-    def exe_base_action(self):
+    def exe_base_action(self) -> None:
         """
         Executes a base action made by the agent
         """
+        self.current_base_action_instance.do(self.current_base_player, self.game)   
+        return
+    
+    def exe_challenge(self, agent:int) -> None:
+        """
+        Executes a challenge made by the agent
+        """
+        game = self.game
+        agent = game.players[agent]
         
-        self.claim_action() # adds current base action to players claimed cards.
+
+        challenging_player = agent
+        current_player = self.current_base_player
+        current_action = self.current_base_action_instance
         
-        if not self.current_base_action_instance.challengable:
-            print("Action is not challengable or blockable, doing action")
-            self.current_base_action_instance.do(self.current_base_player, self.game)            
-            return 
+    
+        #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
+        self.challenge = Challenge(game=game, 
+                              current_action = current_action,
+                              current_player = current_player,
+                              challenging_player = challenging_player)
         
+        
+        self.challenge.duel(challenging_player) 
+        return 
+        
+
         # Do bot challenges
         for bot in self.game.turn.current_other_players:
             chal = bot.choose_to_challenge()
@@ -246,13 +269,13 @@ class Turn:
             self.current_base_action_instance.do(self.current_base_player, self.game)            
             return 
         
-        if self.action_type == 'challenge_action':
+        if self.next_action_type == 'challenge_action':
             # agent chalenge has already been requested
             self.current_base_action_instance.do(self.current_base_player, self.game)
-            self.action_type = "base_action"
-        elif self.action_type =="base_action":
+            self.next_action_type = "base_action"
+        elif self.next_action_type =="base_action":
             # action is challengable
-            self.action_type = 'challenge_action'
+            self.next_action_type = 'challenge_action'
             
         self.update_player_turns()
         
@@ -302,7 +325,7 @@ class Turn:
 
         # then players can choose to block
         # block will need information about whose is making the action, what the action is (if the action is blockable), and Will eventually need to check their knowledge
-        game.action_type = 'challenge_action'
+        game.next_action_type = 'challenge_action'
         game.challenging_player = bot.name
 
     
@@ -312,10 +335,10 @@ class Turn:
         current_player = self.current_player
         
         # print current players knowledge
-        print(current_player.knowledge)
+        # print(current_player.knowledge)
         # current player claims a certian action        
         self.claim_action(current_player, game)
-        self.action_type="base_action"
+        self.next_action_type="base_action"
         
         #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
         challenge = Challenge(game=game, 
@@ -325,7 +348,7 @@ class Turn:
         self.challenge = challenge
         
         if challenge.is_action_challengable(): # if action can be challenged 
-            self.action_type="challenge_action"
+            self.next_action_type="challenge_action"
             challenge.challenge_round()
             
         ###### RESULT OF CHALLENGE
@@ -348,7 +371,7 @@ class Turn:
             self.block = block
             
             if block.is_action_blockable():
-                self.action_type="block_action"
+                self.next_action_type="block_action"
 
                 if self.current_action.name == "foreign_aid":
                     block.block_round()
@@ -407,7 +430,7 @@ class Turn:
         self.current_base_action_target_int = None
         self.current_base_action_challenger_int = None
         self.current_base_action_instance = None
-        self.action_type = 'base_action'
+        self.next_action_type = 'base_action'
         self.current_chooser = self.current_base_player
         
     def do(self, game):

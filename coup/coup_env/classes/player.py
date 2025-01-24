@@ -157,12 +157,6 @@ class Player():
     
     def lose_life(self, game):  ## UPDATE KNOWLEDGE OF PLAYER
         """Player loses a life
-        Handles the following:
-        removal of lost life from claimed cards
-        removal of card from players cards
-        addition of dead card into known pool of revealed cards
-        checks to see if player is dead and handles turn order changes
-
         Args:
             game (_type_): _description_
 
@@ -170,20 +164,16 @@ class Player():
             _type_: _description_
         """ 
         player_cards = self.cards
-        lo_names = set([card.name for card in player_cards])
+        
+        if len(player_cards) ==0:
+            # player has no more cards
+            return
         
         if self.type =='agent': # for now randomly selected. will make this learnable later. need to add more actions
             print("Agent must lose life")
             card = np.random.choice(player_cards)
             card_name = card.name.lower()
             
-        
-        if self.type == 'bot': # randomly remove a card if we
-            print("Bot must lose life")
-            card = np.random.choice(player_cards)
-            card_name = card.name.lower()
-
-        
         updated_list = []
         for card in player_cards:
             if card.name.lower() == card_name:
@@ -214,7 +204,7 @@ class Player():
         if len(self.cards)==0:
             print(f"~~~~~~~~~~Player {self.name} is out of influence~~~~~~~~~~")
             self.status = 'dead'
-            game.update_order_after_death()
+            
 
 
 

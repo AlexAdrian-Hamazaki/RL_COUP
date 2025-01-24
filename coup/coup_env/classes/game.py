@@ -12,14 +12,12 @@ class Game:
     
     def __init__(self, n_players):
         self._n_players = n_players
-        self._agent = Player(0)
-        self._bots = [Bot(n) for n in range(1,n_players)]
-        self._players = [self.agent] + self.bots
+        self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck
         self._revealed_cards = []
         self._bank = CoinBank()
-        self._turn = Turn(self.players)
+        self._turn = Turn(self.players, self)
         
         self._win = False # true if agent won
         self._lost = False # True if agent is dead
@@ -36,15 +34,14 @@ class Game:
                             "tax":Tax,
                             "assassinate":Assassinate,
                             "steal":Steal,
-                            "exchange":Exchange}
+                            "exchange":Exchange,
+                            'pass':Actions}
         
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
         self.update_knowledge()
         print(f"""Initialized game with {len(self.players)} players""")
-        
-        self.next_action_type = "base_action"
-        
+            
     def __repr__(self):
         result = f"""
 {"*"*40}
@@ -243,6 +240,8 @@ Current Coins in Bank = {self._bank}
         """
         self.turn.step(action, action_map, self)
         self.assess_game_win()
+        
+    
 
     
             

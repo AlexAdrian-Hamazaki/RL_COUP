@@ -1,6 +1,6 @@
 from .player import Player
 from .card import Card
-
+import numpy as np
 class Actions:
     # each person will have an action doing class?
     ALLOWED_ACTIONS = [
@@ -17,7 +17,9 @@ class Actions:
     
     ACTIONS_WITH_TARGET = {'coup', 'assassinate', 'steal'}
     
-    def __init__(self, name="Action"):
+    card = ''
+    
+    def __init__(self, name="pass"):
         self._name = name    
         self._challengable = self._name in self.CHALLENGABLE_ACTIONS
         self._blockable = self._name in self.BLOCKABLE_ACTIONS  
@@ -67,7 +69,7 @@ class Actions:
     def has_target(self, value):
         self._has_target = value  # Update the _has_target attribute
 
-    def perform_action(self):
+    def do(self):
         print("Performing a general action!")
         
     def check_coins(self, coins):
@@ -152,7 +154,7 @@ class Assassinate(ActionsWTarget):
     def do(self, player, game):
         player = player
         target = self.target_player
-        player.discard_coins(game, 3)
+        player.discard_coins(game, 3)        
         target.lose_life(game)
         print("\t\tAssassination action performed!")
 
@@ -187,8 +189,10 @@ class Exchange(Actions):
         
 
     def select_bottom(self, player, game): 
-        card_name = input(f"\tPlayer {player.name}: select card to bottom {player.cards}")
+
         cards = player.cards
+        card = np.random.choice(cards)
+        card_name = card.name
         
         lo_names = [card.name for card in cards]
         if not card_name in lo_names:

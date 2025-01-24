@@ -46,30 +46,32 @@ class Challenge:
             return False
         
     def challenge_fails(self):
+        self.status = False
         print("Challenge Failed")
-        # Actions for player whoo was challenged 
-        current_player = self.current_player
-        game = self.game
-        current_action = self.current_action
-        success = False
-        for card in current_player.cards:
-            if current_action.name.lower() in card.REAL_ACTIONS: # if the action is allowed by the cards the current player has
-                current_player.put_card_on_bottom(card, game)
-                current_player.remove_claimed_card(current_action)
-                game.deck.shuffle()
-                current_player.draw_card(game)
-                success = True # the challenge 
-                break
-        if not success:
-            raise ValueError("Error: unable to reveal card but player should have it in hand")    
+        # # Actions for player whoo was challenged 
+        # current_player = self.current_player
+        # game = self.game
+        # current_action = self.current_action
+        # success = False
+        # for card in current_player.cards:
+        #     if current_action.name.lower() in card.REAL_ACTIONS: # if the action is allowed by the cards the current player has
+        #         current_player.put_card_on_bottom(card, game)
+        #         current_player.remove_claimed_card(current_action)
+        #         game.deck.shuffle()
+        #         current_player.draw_card(game)
+        #         success = True # the challenge 
+        #         break
+        # if not success:
+        #     raise ValueError("Error: unable to reveal card but player should have it in hand")    
         
-        #### Actions done by player whose challenge failed
-        self.challenging_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well    
+        # #### Actions done by player whose challenge failed
+        # self.challenging_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well    
         
     def challenge_succeeds(self):
         print("Challenge Succeeds")
-        # if challenge succeds, active player needs to reveal a card of their choice
-        self.current_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well
+        self.status = True
+        # # if challenge succeds, active player needs to reveal a card of their choice
+        # self.current_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well
 
 
     def is_action_challengable(self):

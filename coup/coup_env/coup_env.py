@@ -5,7 +5,7 @@ import random
 import functools
 from copy import copy
 import numpy as np
-from classes.game import Game
+from .classes.game import Game
 import itertools
 from pettingzoo.utils import agent_selector, wrappers
 
@@ -39,6 +39,9 @@ class CoupEnv(AECEnv):
         self.game = Game(self.n_players)
         deck_size = len(self.game.deck.deck)
         self.agents = [p.name for p in self.game.players] # integer
+        self.action = None
+        self.possible_agents = self.agents.copy()
+        
         
         ############################################################################
         ###### Mapping integers to names of things ##############################
@@ -99,7 +102,9 @@ class CoupEnv(AECEnv):
         self._base_actions.remove("block_foreign_aid")
         self._base_actions.remove("block_steal_amb")
         self._base_actions.remove("block_steal_cap")
-        self._steal_actions = [f"steal_from_{agent}" for agent in self.agents]
+        
+        self._exe = ['exe']
+        self._steal_actions = [f"steal_{agent}" for agent in self.agents]
         self._base_actions = self._base_actions + self._steal_actions
         
         self._assassinate_actions = [f"assassinate_{agent}" for agent in self.agents]
@@ -107,7 +112,7 @@ class CoupEnv(AECEnv):
         self._challenge_action = ["challenge"] 
         self._pass_action = ['pass']
         
-        self._actions = self._base_actions + self._assassinate_actions + self._coup_actions + self._challenge_action + self._pass_action
+        self._actions = self._base_actions + self._assassinate_actions + self._coup_actions + self._challenge_action + self._pass_action + self._exe
         self._actions.sort()
         self._action_space_map = dict(zip([action for action in self._actions],
                                           [n for n in range(len(self._actions))]
@@ -122,7 +127,7 @@ class CoupEnv(AECEnv):
         """
         Returns the observation an agent currently can make.
         """
-                #################################
+        #################################
         ##### THINGS ONLY THE AGENT KNOWS
         #################################
         agent_instance = self.game.players[agent] # grab the correct instance of the agent
@@ -137,7 +142,7 @@ class CoupEnv(AECEnv):
         #################################
         ##### THINGS EVERYONE KNOWS
         #################################
-        next_action_type = self.game.next_action_type
+        next_action_type = self.game.turn.next_action_type
         revealed = self.game.revealed_cards
         turn_order = self.game.turn.turn_order
         others_claims = agent_instance.knowledge.other_player_claims # turn this into cards instead of actions
@@ -145,11 +150,9 @@ class CoupEnv(AECEnv):
         others_money = agent_instance.knowledge.other_player_n_coins
         
         current_base_player= self.game.turn.current_base_player.name
-        if self.game.turn.current_base_action_instance:
-            current_claimed_card = self.game.turn.current_base_action_instance.card
-        else:
-            current_claimed_card = None
-        base_action_target_player = -1 # no target # todo fix WHEN USING TARGET
+        
+        current_claimed_action = self.action
+    
         
         observation = {
             "next_action_type": next_action_type, #base_action, challenge_action, or block_action
@@ -163,26 +166,24 @@ class CoupEnv(AECEnv):
             "revealed": revealed,
             "turn_order": turn_order,
             "current_base_player": current_base_player,
-            "current_claimed_card": current_claimed_card,
-            "base_action_target_player": base_action_target_player,
+            "current_claimed_action":current_claimed_action
             }
         
         return observation
         
     
-    def observe(self, agent: AgentID) -> dict[ObsType, ActionMask]:
+    def observe(self, agent: AgentID) -> dict[ObsType]:
         """
-        get the observation and action mask for an agent
+        Observes the self.state to get an observation for an agent
         
         env.last() calls this
         """
         # observation
-        observation = self._get_obs(agent)
-                
-        # Compute action mask
-        action_mask = self._compute_action_mask(agent)
-        
-        return {'observation':observation, 'action_mask':action_mask}
+        observation = self.state[agent]
+        return observation
+    
+
+    
     
     def action_space(self, agent: AgentID) -> gym.spaces.Space:
         """Takes in agent and returns the action space for that agent.
@@ -221,13 +222,18 @@ class CoupEnv(AECEnv):
         # init action mask of 0s to represent valid actions
         a_mask = np.array([0] * len(self._actions), dtype=np.int8)
 
-        next_action_type = self.game.next_action_type # what type of action is able to be selected here
+        next_action_type = self.game.turn.next_action_type # what type of action is able to be selected here
         agent_instance = self.game.players[agent]
         agent_money = agent_instance.coins
         current_base_action_instance = self.game.turn.current_base_action_instance
         
-
-        if next_action_type == 'base_action':
+        if len(self.agents) == 1: # if game end just pass
+            lo_valid_actions = self._pass_action
+            lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
+            a_mask[lo_valid_indexes] = 1
+            return a_mask
+        
+        if next_action_type == 'claim_base_action':
             if agent_money>10:
                 lo_valid_actions = self._assassinate_actions + self._coup_actions
                 lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
@@ -253,10 +259,25 @@ class CoupEnv(AECEnv):
                 return a_mask
     
         elif next_action_type == "challenge_action":
-            lo_valid_actions = self._challenge_action + self._pass_action
-            lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
-            a_mask[lo_valid_indexes] = 1
-            return a_mask
+            # if the agent is the same as the base player, the challenge round has completed
+            # so they actually do not get to make a choise. they will execute the action they claimed
+            if agent == self.game.turn.current_base_player.name:
+                lo_valid_actions = self._exe
+                lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
+                a_mask[lo_valid_indexes] = 1
+                return a_mask
+            
+            # if action is not challengable, pass
+            if not current_base_action_instance.challengable:
+                lo_valid_actions = self._pass_action
+                lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
+                a_mask[lo_valid_indexes] = 1
+                return a_mask
+            else: # action is challengable
+                lo_valid_actions = self._challenge_action + self._pass_action
+                lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
+                a_mask[lo_valid_indexes] = 1
+                return a_mask
         
         
         elif next_action_type == "block_action":
@@ -294,7 +315,7 @@ class CoupEnv(AECEnv):
             valid_actions.append(sampled_action)
         return np.array(valid_actions)
     
-    def reset(self, seed=None, options=None) -> None:
+    def reset(self, seed=None, options=None):
         """
         Resets the game to a fresh game with freshly dealt cards
         
@@ -303,11 +324,12 @@ class CoupEnv(AECEnv):
             -agents
             -agent_selection generator
         - observations
-        - rewards
         - _cumulative_rewards
+        - rewards
         - terminations
         - truncations
         - infos
+        - action
         
         And must set up the environment so that render(), step(), and observe()
         can be called without issues.
@@ -321,29 +343,30 @@ class CoupEnv(AECEnv):
         ############################################################################
         ###### self.agents initialization -- very important ##############################
         ############################################################################
-        self.possible_agents = ['player']
         self.agents = [p.name for p in self.game.players] # integer
         
         ############################################################################
         ###### basic RL outputs for each agent ##############################
         ############################################################################
         self.rewards = {agent: 0 for agent in self.agents}
-        self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
+
         self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
-        self.observations = {agent: self.observe(agent) for agent in self.agents}      
+        self.infos = {agent: {"action_mask":self._compute_action_mask(agent)} for agent in self.agents}
+        self.state = {agent: self._get_obs(agent) for agent in self.agents}      
         
         #### AGENT SELECTOR ALLOWS FOR STEPPING THROUGH AGENTS
         self._agent_selector = agent_selector(self.agents)
         self.agent_selection = self._agent_selector.next()
- 
-    def state(self) -> dict[AgentID,ObsType]:
-        return self.observations
         
+        ### action will be reset
+        self.action = None
         
+        return 
+
     
-    def step(self, action: ActionType) -> None: # TODO
+    def step(self, action: ActionType) -> None:
         """Makes an action by the current agent
         
         Updates self.observations depending on a lot of things:
@@ -358,111 +381,222 @@ class CoupEnv(AECEnv):
                 agent changes action type to base action
             
         Updates
-        -rewards
-        -_cumulative_rewards
+        -rewards # reward for the previous step
         -terminations
+        -_cumulative_rewards # rewards over the game
         -truncations
         -infos
         -agent_selection
         
         """
-        if (
-            self.terminations[self.agent_selection]
-            or self.truncations[self.agent_selection]
-        ):
+        if (self.terminations[self.agent_selection] or self.truncations[self.agent_selection]): # for when you died not on your turn
+            print(f'Current agent is dead, {self.agent_selection}, skipping action')
             # handles stepping an agent which is already dead
             # accepts a None action for the one agent, and moves the agent_selection to
             # the next dead agent,  or if there are no more dead agents, to the next live agent
             self._was_dead_step(action)
-            return
+            
+            # Update mask for next agent
+            self.infos[self.agent_selection] = {"action_mask": self._compute_action_mask(self.agent_selection)}
+            return # step does nothing because agent is dead 
         
+        
+        self.action = action
         agent = self.agent_selection
+    
         print(f"Current Agent {agent}")
-        
-        # set cumulative rewards for this current agent for this turn to 0
-        self._cumulative_rewards[agent] = 0
-        
-        # store action of current agent
-        self.state[agent] = action
-        
-        print(self._agent_selector.is_last())
-        
+        print(f"Current action type {self.game.turn.next_action_type}")
         ################################################################# 
         ###################### STEP BLOCK ########################### 
         ################################################################# 
-        
-        
-        
-        
-        # selects the next agent.
-        self.agent_selection = self._agent_selector.next()
-        # Adds .rewards to ._cumulative_rewards
-        self._accumulate_rewards()
+        action = self._convert_action(action) # action[0] = target agent, # action[1] = action_str
+        print(f"Selected Action: {action}")
 
-        return 
-        
-        
-        action = self.sample_valid_action()
-        if self.game.turn.action_type == 'base_action':
-            action = [12,-1]
+
+        # If we are at a base action
+        if self.game.turn.next_action_type == "claim_base_action":
+            self.game.turn.claim_base_action(agent, action)
+            self.game.turn.next_action_type = "challenge_action"
             
-        print(f"Selected Action {action}")
-        
-        # check if action is valid
-        if not self._is_action_valid(action):
-            raise ValueError(f"Invalid action {action} for the current state.\n {self.game.turn.action_type}\n{self.game.turn.current_base_player}")
 
-        action_map = self._action_space_map
-        #first make the step through the action
-        
-        self.last = self.observe().copy()
+        elif self.game.turn.next_action_type == "challenge_action":
+            # if our agent is the same as the base player
+            if agent == self.game.turn.current_base_player.name:
+                print("~~~Challlenge round has reached base player, \n ignoring challenge action and executing base action~~~")
+                # challenge round completed with no one challenging
+                self.game.turn.exe_base_action() 
+                self.game.turn.next_action_type = 'claim_base_action'
+            elif list(action.values())[0] == 'pass': # non-base player passed
+                pass
+            elif list(action.values())[0] == 'challenge': # challenged
+                print("Executing challenge")
+                self.game.turn.exe_challenge(agent) 
+                self.game.turn.next_action_type = "pass_action"
 
-        self.game.step(action, action_map)
 
+        elif self.game.turn.next_action_type == "block_action":
+            # future implementation TODO
+            pass
         
-        # then get the observation of the new environment
-        observation = self.observe()
+        elif self.game.turn.next_action_type == "pass_action":
+            if agent == self.game.turn.current_base_player.name: # if the current agent is the base acting player,
+                if self.game.turn.challenge.status: # if challenge succeeded
+                    pass
+                else: # challenge failed. execute base action
+                    self.game.turn.exe_base_action()
+                # next, the next agent will make a base action
+                self.game.turn.next_action_type = 'claim_base_action'
+            else: # otherwise agents just pass
+                pass
+            
+        print(f"Next action type: {self.game.turn.next_action_type}")
         
-        # then get info on if we've terminated
-        terminated = self.game.win
-        # truncated if agent is dead
-        truncated = self.game.lost 
+        # update game state
+        self.state = {agent: self._get_obs(agent) for agent in self.agents} 
+        # update truncations
+        # never update truncations right now -> but if you need to now then do it here
         
-        # then get the reward for stepping/terminating
-        reward = self.get_reward(terminated, truncated)
-        # print(f"Reward {reward}, terminated {terminated}, truncated {truncated}")
+        # update terminations
+        self.terminations = {agent: self._get_termination(agent) for agent in self.agents}
+
+        # update rewards
+        self.rewards  = {agent: self._get_reward(agent) for agent in self.agents}
         
-        # then get any additional info and truncation flag
-        return observation, reward, terminated, truncated, {}
+        print(self.state[agent]['agent_cards'])
+
+        print(self.state[agent]['others_n_cards'])
         
-    def get_reward(self, terminated, truncated):        
-        last = self.last
-        obs = self.observe()
-        reward = 0    
+        print(self.rewards)
+
+        self._accumulate_rewards() 
+        
+        # move to next agent If this agent dies on its turn. But still policy is updated but if we are at the end of the game we will not step again
+        if (self.terminations[self.agent_selection] or self.truncations[self.agent_selection]): # for when you died not on your turn
+            print(f'Agent died on its turn, {self.agent_selection}')
+            # handles stepping an agent which is already dead
+            # accepts a None action for the one agent, and moves the agent_selection to
+            # the next dead agent,  or if there are no more dead agents, to the next live agent
+            self._was_dead_step(None)
+            # Update mask for next agent
+            self.infos[self.agent_selection] = {"action_mask": self._compute_action_mask(self.agent_selection)}
+            print("IT  HAPPENED ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            return # step does nothing because agent is dead 
+        
+        
+        self.agent_selection = self._agent_selector.next()
+        # Update mask for next agent
+        self.infos[self.agent_selection] = {"action_mask": self._compute_action_mask(self.agent_selection)}
+
+        return 0
     
-        # +1 for every money we gained
-        money_reward = obs["agentmoney"] - last["agentmoney"]
+    def _get_termination(self, agent):
+        player = self.game.players[agent]
+        return player.status == 'dead'
     
-        # if another bot has 1 less life, this is +5    
-        diff_lives = {bot: last['others_n_cards'][bot] - obs['others_n_cards'][bot] for bot in last['others_n_cards'].keys()}
-        kills = sum(diff_lives.values())
-        kills_reward = abs(kills*10)
-    
-        # if we've terminated and we have won this is +50
-        if terminated: # agent won
-            win_reward = 50
-        elif truncated: #agent died
-            win_reward = -50
-        else:
-            win_reward = 0
-        
-        # if we've died this is -50
-        reward += money_reward + kills_reward + win_reward
-        
-        return reward
+    def _was_dead_step(self, action: ActionType) -> None:
+        """Helper function that performs step() for dead agents.
 
+        Does the following:
 
-    
+        1. Removes dead agent from .agents, .terminations, .truncations, .rewards, ._cumulative_rewards, and .infos
+        2. Loads next agent into .agent_selection: if another agent is dead, loads that one, otherwise load next live agent
+        3. Clear the rewards dict
+
+        Examples:
+            Highly recommended to use at the beginning of step as follows:
+
+        def step(self, action):
+            if (self.terminations[self.agent_selection] or self.truncations[self.agent_selection]):
+                self._was_dead_step()
+                return
+            # main contents of step
+        """
+        if action is not None:
+            raise ValueError("when an agent is dead, the only valid action is None")
+
+        # removes dead agent
+        agent = self.agent_selection
+        assert (
+            self.terminations[agent] or self.truncations[agent]
+        ), "an agent that was not dead as attempted to be removed"
+        del self.terminations[agent]
+        del self.truncations[agent]
+        del self.rewards[agent]
+        del self._cumulative_rewards[agent]
+        del self.infos[agent]
+        self.agents.remove(agent)
+        
+
+        # finds next dead agent or loads next live agent (Stored in _skip_agent_selection)
+        _deads_order = [
+            agent
+            for agent in self.agents
+            if (self.terminations[agent] or self.truncations[agent])
+        ]
+        if _deads_order: # another agent is dead
+            if getattr(self, "_skip_agent_selection", None) is None:
+                self._skip_agent_selection = self.agent_selection
+            self.agent_selection = _deads_order[0] # make next turn be next dead agent
+        else: # no agent is dead
+            if getattr(self, "_skip_agent_selection", None) is not None:
+                assert self._skip_agent_selection is not None
+                self.agent_selection = self._skip_agent_selection
+                print(self.agent_selection)
+                assert False
+            self._skip_agent_selection = None
+            # selects the next agent.
+            self.agent_selection = self._agent_selector.next() # pull request this I think?
+        self._clear_rewards()
+        
+        
+    def _get_reward(self, agent) -> int:
+        """Get reward of current agent
+        
+        Note. i may make this more expressive later on
+
+        Args:
+            agent (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if self.terminations[agent] == True: # if agent died this turn
+            return -1
+        
+        if len(self.agents)==1:
+        
+            assert False
+            return 1
+        
+        return 0
+        
+
+    def _convert_action(self, action: ActionType) -> dict[AgentID, str]:
+        """Converts action type to dictionary where
+        AgentId is the target of the action
+        and str is the string representation of the action
+
+        Args:
+            action (ActionType): _description_
+
+        Returns:
+            str: _description_
+        """
+        action_map = {value: key for key, value in self._action_space_map.items()}
+        action_str = action_map[action]
+        try:
+            agent_id = action_str.split("_")[-1]
+            if type(int(agent_id)) == int:
+                agent_id = int(agent_id)
+                action_str = "_".join(action_str.split("_")[:-1])
+        except ValueError:
+            agent_id = -1
+            action_str = action_str
+        
+        return {agent_id:action_str}
+
+    def last_(self):
+        return self.last()[0]
 
     def render(self):
         pass
