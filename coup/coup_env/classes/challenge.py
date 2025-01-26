@@ -103,10 +103,12 @@ class Challenge:
         #other player contests the action of current player (in self.current_player)
         #first the current player reveals if they have the card required to do the action
         if self.can_rev_cc(): # if they have the card they claim this will be true
-            self.challenge_fails()
-            self.current_action.do(self.current_player, self.game)
+            self.status = False
+            print("Challenge Failed")
+            
         else: # the current player does not have the card they claim to have the power for
-            self.challenge_succeeds()
+            print("Challenge Succeeds")
+            self.status = True
             
 
             

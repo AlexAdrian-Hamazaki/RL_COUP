@@ -68,10 +68,13 @@ class Player():
         card.status = 'hand'
         # draw card
         self.cards.append(card)
+        # remove top unknown card from deck knowledge
+        self.knowledge.remove_top_card_from_deck_knowledge()
         # remove card from top of deck
         game.deck.remove_top_card()
         # add to player knowledge
         self.knowledge.add_to_cards(card)
+
         
         
         
@@ -169,32 +172,22 @@ class Player():
             # player has no more cards
             return
         
-        if self.type =='agent': # for now randomly selected. will make this learnable later. need to add more actions
-            print("Agent must lose life")
-            card = np.random.choice(player_cards)
-            card_name = card.name.lower()
-            
-        updated_list = []
-        for card in player_cards:
-            if card.name.lower() == card_name:
-                revealed_card = card
-            else:
-                updated_list.append(card)
+        print(f"Agent {self.name} loses 1 life")
+        dead_int = np.random.choice(range(len(player_cards))) # TODO make this learnable
 
+        dead_card = player_cards[dead_int]
+        
+        
         # Hand now becomes n-1 size
-        self.cards = updated_list
-        
+        self.cards = [val for i, val in enumerate(player_cards) if i != dead_int]
+
         # add card to revealed card list in game
-        revealed_card.state='revealed'
-        game.add_to_revealed_cards(revealed_card)
-        game.update_revealed_knowledge_for_players()
-        
+        game.add_to_revealed_cards(dead_card)
         # update self knowledge
-        
-        self.knowledge.remove_from_cards(card)
+        self.knowledge.remove_from_cards(dead_card)
         
         # Remove the claimed action from this player's claimed actions
-        [self.remove_claimed_card(ac) for ac in revealed_card.REAL_ACTIONS] #removes
+        [self.remove_claimed_card(ac) for ac in dead_card.REAL_ACTIONS] #removes
         
         # Check to see if player is dead
         self.check_death(game)

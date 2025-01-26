@@ -1,15 +1,16 @@
 import textwrap
 from .challenge import Challenge
 from .block import Block
+from .actions import Actions
 
 class Turn:
     def __init__(self, players, game):
         self._turn_order_index = 0
         self._current_base_player = players[self.turn_order_index]
-        self._current_base_action = None 
+        self._current_base_action_str = None 
         self._current_base_action_target_int = None
         self._current_base_action_challenger_int = None
-        self._current_base_action_instance = None
+        self._current_base_action_instance = Actions()
         self._current_other_players = players[self.turn_order_index+1:] + players[:self.turn_order_index]
         self._turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
     
@@ -54,6 +55,14 @@ class Turn:
     @current_base_action.setter
     def current_base_action(self, value):
         self._current_base_action = value
+
+    @property
+    def current_base_action_str(self):
+        return self._current_base_action_str
+
+    @current_base_action_str.setter
+    def current_base_action_str(self, value):
+        self._current_base_action_str = value
 
     # Getter and Setter for _current_other_players
     @property
@@ -158,7 +167,6 @@ class Turn:
                     return
                 else:
                     print("Agent does not challenge bot")
-                    print(self.current_base_action)
                     self.exe_bot_base_action() # just claims action and returns next observation state
                     return
                 
@@ -178,10 +186,9 @@ class Turn:
         # get target player
         self.current_target = self.game.players[list(action.keys())[0]]
         # get str of current action
+        
         self.current_base_action_str = list(action.values())[0]
-        
     
-        
         # print(self.current_base_player)
         # print(self.current_target)
         # print(self.current_base_action_str)
@@ -204,12 +211,15 @@ class Turn:
         
         # Update game to update every player's knowledge of what every player is claiming
         self.game.update_knowledge()
+        
+        print(f"Base action {self.current_base_action_str} was claimed")
     
     def exe_base_action(self) -> None:
         """
         Executes a base action made by the agent
         """
         self.current_base_action_instance.do(self.current_base_player, self.game)   
+        self.game.update_knowledge()
         return
     
     def exe_challenge(self, agent:int) -> None:
@@ -233,6 +243,14 @@ class Turn:
         
         
         self.challenge.duel(challenging_player) 
+        
+        if self.challenge.status == True: # challenge succeeded
+            current_player.lose_life(game) # current player loses life
+        elif self.challenge.status == False: # challenge failed
+            # challenging player loses life
+            challenging_player.lose_life(game)
+            # action goes through. it will go through at the .exe action
+        self.game.update_knowledge()
         return 
         
 

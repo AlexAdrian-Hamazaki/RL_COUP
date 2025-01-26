@@ -15,7 +15,11 @@ class Game:
         self._players = [Player(n) for n in range(n_players)]
         self._deck = Deck()    
         self._deck.shuffle() # shuffle deck
-        self._revealed_cards = []
+        
+        self._revealed_cards = {'assassin':0, 'captain':0, 'duke':0, 'contessa':0, 'ambassador':0}
+        self._n_cards = {n:2 for n in range(n_players)}
+        self._n_coins = {n:2 for n in range(n_players)}
+
         self._bank = CoinBank()
         self._turn = Turn(self.players, self)
         
@@ -101,7 +105,21 @@ Current Coins in Bank = {self._bank}
     @revealed_cards.setter
     def revealed_cards(self, revealed_cards):
         self._revealed_cards = revealed_cards
+        
+    @property
+    def n_cards(self):
+        return self._n_cards
+    @n_cards.setter
+    def n_cards(self, n_cards):
+        self._n_cards = n_cards
   
+    @property
+    def n_coins(self):
+        return self._n_coins
+    @n_coins.setter
+    def n_coins(self, n_coins):
+        self._n_coins = n_coins
+        
     @property
     def actions(self):
         return self._actions
@@ -123,7 +141,7 @@ Current Coins in Bank = {self._bank}
         self._lost = lost
     
     def add_to_revealed_cards(self, card):
-        self.revealed_cards.append(card.name.lower())
+        self.revealed_cards[card.name.lower()] +=1 
     
     def _setup_deal(self): # initialize dealing of cards to players
         print("Dealing Setup Cards")
@@ -183,38 +201,27 @@ Current Coins in Bank = {self._bank}
         all other players n coins
         all other players n cards
         """
-        self.update_revealed_knowledge_for_players()
+        # self.update_revealed_knowledge_for_players()
+
         self.update_all_players_claimed_cards()
         self.update_all_players_n_coins()
         self.update_all_players_n_cards()
 
     def update_revealed_knowledge_for_players(self):
-        lo_names = [name for name in self.revealed_cards]
+        lo_names = [name for name in list(self.revealed_cards.keys())]
         for player in self.players:
             player.knowledge.revealed_knowledge = lo_names
             
+            
     def update_all_players_claimed_cards(self):
-        players = self.players
-
-        for player1 in players:
-            for player2 in players:
-                if player1.name == player2.name:
-                    continue
-                player1.update_other_p_c_card(player2) # updates player 1's knowledge of player 2's claimed cards
+        self.claimed_cards = {player.name :player.claimed_cards for player in self.players}
+                
     def update_all_players_n_coins(self):
-        players = self.players
-        for player1 in players:
-            for player2 in players:
-                if player1.name == player2.name:
-                    continue
-                player1.update_other_p_n_coins(player2) # updates player 1's knowledge of player 2's claimed cards
+        self.n_coins = {player.name: player.coins for player in self.players}
+
     def update_all_players_n_cards(self):
-        players = self.players
-        for player1 in players:
-            for player2 in players:
-                if player1.name == player2.name:
-                    continue
-                player1.update_other_p_n_cards(player2) # updates player 1's knowledge of player 2's claimed cards
+        self.n_cards = {player.name: len(player.cards) for player in self.players}
+            
 
 
     def update_order_after_death(self): # should go into game object

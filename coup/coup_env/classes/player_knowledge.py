@@ -113,8 +113,11 @@ Revealed Cards: {self._revealed_knowledge}
         
     # Add a card to deck_knowledge
     def add_to_deck_knowledge(self, card):
-        if card.name.lower() not in self._deck_knowledge:
-            self.deck_knowledge.append(card.name.lower())
+        self.deck_knowledge.append(card.name.lower())
+        
+    # Add a card to deck_knowledge
+    def remove_top_card_from_deck_knowledge(self):
+        self.deck_knowledge = self.deck_knowledge[1:]
 
     # Remove a card from deck_knowledge
     def reset_deck_knowledge(self): # May be wrong because there is still knowledge after a shuffle but model will hopefully learn

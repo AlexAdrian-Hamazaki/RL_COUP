@@ -15,10 +15,11 @@ env.reset(seed=42)
 
 for agent in env.agent_iter():
     print("\n\n")
+    print(self.observe(agent))
+
     observation, reward, termination, truncation, info = env.last()
     if reward == 1:
         print("Game  End")
-        assert False
     if termination or truncation:
         action = None
     else:
