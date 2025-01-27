@@ -1,33 +1,29 @@
-# Gymnasium Examples
-Some simple examples of Gymnasium environments and wrappers.
-For some explanations of these examples, see the [Gymnasium documentation](https://gymnasium.farama.org).
+# A Multi-agent RL environment for COUP
 
-### Environments
-This repository hosts the examples that are shown [on the environment creation documentation](https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/).
-- `GridWorldEnv`: Simplistic implementation of gridworld environment
+This repo contains a [pettingzoo](https://pettingzoo.farama.org/index.html) and [gymnasium](https://gymnasium.farama.org) compliant environment for multi-agent reinforcement learning
 
-### Wrappers
-This repository hosts the examples that are shown [on wrapper documentation](https://gymnasium.farama.org/api/wrappers/).
-- `ClipReward`: A `RewardWrapper` that clips immediate rewards to a valid range
-- `DiscreteActions`: An `ActionWrapper` that restricts the action space to a finite subset
-- `RelativePosition`: An `ObservationWrapper` that computes the relative position between an agent and a target
-- `ReacherRewardWrapper`: Allow us to weight the reward terms for the reacher environment
+### Usage
 
-### Contributing
-If you would like to contribute, follow these steps:
-- Fork this repository
-- Clone your fork
-- Set up pre-commit via `pre-commit install`
+Basic usage of the environment is as follows. This pattern is compliant with pettingzoo environment requirements.
 
-PRs may require accompanying PRs in [the documentation repo](https://github.com/Farama-Foundation/Gymnasium/tree/main/docs).
-
-
-## Installation
-
-To install your new environment, run the following commands:
-
-```{shell}
-cd coup
-pip install -e .
 ```
+from coup_env.coup_env import CoupEnv
+env = CoupEnv(n_players=2)
+env.reset(seed=42)
+
+for agent in env.agent_iter():
+    observation, reward, termination, truncation, info = env.last()
+    if termination or truncation:
+        action = None
+    else:
+        # this is where you would insert your policy
+        action_mask = info['action_mask']
+        action = env.action_space(agent).sample(action_mask) 
+    env.step(action)
+env.close()
+```
+
+### Future Development
+
+For a 100% correct implementation of the game, some features need to be added (see issues)
 
