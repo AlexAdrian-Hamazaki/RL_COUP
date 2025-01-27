@@ -2,6 +2,8 @@
 
 This repo contains a [pettingzoo](https://pettingzoo.farama.org/index.html) and [gymnasium](https://gymnasium.farama.org) compliant environment for multi-agent reinforcement learning
 
+The step function for the environment leverages previously designed assets from my object-orientated instantiation of the game's logic [found here](https://github.com/AlexAdrian-Hamazaki/COUP)
+
 ### Usage
 
 Basic usage of the environment is as follows. This pattern is compliant with pettingzoo environment requirements.
