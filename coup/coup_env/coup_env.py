@@ -12,6 +12,7 @@ from collections import Counter
 from itertools import combinations_with_replacement
 
 from typing import Any,  Generic, Iterable, Iterator, TypeVar
+import tqdm
 
 ObsType = TypeVar("ObsType")
 ActionType = TypeVar("ActionType")
@@ -675,7 +676,14 @@ class CoupEnv(AECEnv):
 
     def last_(self):
         return self.last()[0]
-
+    
+    def fill_replay_buffer(self, memory, opponent):
+        """
+        Fill the replay buffer with experiences collected by taking random actions in the environment.
+        :param memory: Experience replay buffer
+        :type memory: AgileRL experience replay buffer
+        """
+        print("Filling replay buffer ...")
 
 
 
