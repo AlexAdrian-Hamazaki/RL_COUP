@@ -1,6 +1,6 @@
 from pettingzoo import AECEnv
 import gymnasium as gym
-from gymnasium.spaces import Discrete, Text, Sequence, Dict, Tuple, MultiDiscrete, MultiBinary, OneOf
+from gymnasium.spaces import Discrete, Text, Sequence, Dict, Tuple, MultiDiscrete, MultiBinary
 import random
 import functools
 from copy import copy
@@ -107,14 +107,14 @@ class CoupEnv(AECEnv):
                     "n_cards": Dict(dict(zip([n for n in range(self.n_players)],
                                             [Discrete(3, start = 0) for _ in range(self.n_players)]))),
                     
-                    # "money": Dict(dict(zip([n for n in range(self.n_players)],
-                    #                             [Discrete(14) for _ in range(self.n_players)]))), # Player_int: Discrete
+                    "money": Dict(dict(zip([n for n in range(self.n_players)],
+                                                [Discrete(14) for _ in range(self.n_players)]))), # Player_int: Discrete
                     
-                    # "revealed": Dict(dict(zip(self._card_names_ints[1:], 
-                    #                         [Discrete(3, start = 0) for _ in range(len(self._card_names_ints[1:]))]))), # Card name, number revealed)
+                    "revealed": Dict(dict(zip(self._card_names_ints[1:], 
+                                            [Discrete(3, start = 0) for _ in range(len(self._card_names_ints[1:]))]))), # Card name, number revealed)
                         
-                    # "current_base_player": Discrete(len(self.agents), start = 0), 
-                    # "current_claimed_card": Discrete(len(self._actions), start = -1), # may not need this
+                    "current_base_player": Discrete(len(self.agents), start = 0), 
+                    "current_claimed_card": Discrete(len(self._actions), start = -1), # may not need this
                 }),
             'action_mask':
                 MultiBinary(len(self._actions))
@@ -180,10 +180,10 @@ class CoupEnv(AECEnv):
             "agent_deck_knowledge": np.array(agent_deck_knowledge),
             "claims": claims,
             "n_cards": n_cards,
-            # "money": money,
-            # "revealed": revealed,
-            # "current_base_player": current_base_player,
-            # "current_claimed_card":current_claimed_card,
+            "money": money,
+            "revealed": revealed,
+            "current_base_player": current_base_player,
+            "current_claimed_card":current_claimed_card,
     
             }
         # Convert everything to the integers the space is expecting
@@ -191,10 +191,10 @@ class CoupEnv(AECEnv):
         observation['agent_deck_knowledge'] = [self._card_name_map[card.lower()] for card in observation['agent_deck_knowledge']]
         observation['claims'] = {agent: self._convert_claims_to_multibinary(observation['claims'][agent]) for agent in list(observation['claims'].keys())}
         observation['n_cards'] = observation['n_cards']
-        # observation['money'] = observation['money']
-        # observation['revealed'] = {self._card_name_map.get(key): value for key, value in observation['revealed'].items()}        
-        # observation['current_base_player'] = observation['current_base_player']
-        # observation['current_claimed_card'] = self._card_name_map.get(observation['current_claimed_card'], -1)
+        observation['money'] = observation['money']
+        observation['revealed'] = {self._card_name_map.get(key): value for key, value in observation['revealed'].items()}        
+        observation['current_base_player'] = observation['current_base_player']
+        observation['current_claimed_card'] = self._card_name_map.get(observation['current_claimed_card'], -1)
         
         ##############################################################################################################
         ########## Action Mask #######################################################
@@ -377,6 +377,8 @@ class CoupEnv(AECEnv):
         And must set up the environment so that render(), step(), and observe()
         can be called without issues.
         Here it sets up the state dictionary which is used by step() and the observations dictionary which is used by step() and observe()
+        
+        Returns state, info
         """   
         ############################################################################
         ###### self.game initialiation -- very important ##############################
@@ -408,7 +410,7 @@ class CoupEnv(AECEnv):
         ### action will be reset
         self.action = None
         
-        return 
+        return self.state, self.infos
 
     
     def step(self, action: ActionType) -> None:
