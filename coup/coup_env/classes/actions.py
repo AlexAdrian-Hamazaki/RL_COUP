@@ -24,11 +24,6 @@ class Actions:
         self._challengable = self._name in self.CHALLENGABLE_ACTIONS
         self._blockable = self._name in self.BLOCKABLE_ACTIONS  
         self._cost = self.ACTION_COST.get(self._name, 0)
-        self._has_target = self._name in self.ACTIONS_WITH_TARGET
-        
-    def __repr__(self):
-        return self.name
-    
     @property
     def name(self):
         return self._name
@@ -69,8 +64,9 @@ class Actions:
     def has_target(self, value):
         self._has_target = value  # Update the _has_target attribute
 
-    def do(self):
-        print("Performing a general action!")
+    def do(self, player, game):
+        # print("Passing!")
+        pass
         
     def check_coins(self, coins):
         # returns true if you have enough coins for action
@@ -87,7 +83,7 @@ class Income(Actions):
         super().__init__(name)  # Initialize the parent class (Actions)
         
     def do(self, player, game):
-        print(f"\tPlayer {player.name} takes income!")
+        #print(f"\tPlayer {player.name} takes income!")
         player = player
         player.take_coins(game, 1)
 
@@ -99,7 +95,7 @@ class Foreign_Aid(Actions):
         super().__init__(name)  # Initialize the parent class (Actions)
 
     def do(self, player, game):
-        print(f"{player.name} takes foreign aid!")
+        #print(f"{player.name} takes foreign aid!")
 
         player = player
         player.take_coins(game, 2)
@@ -127,7 +123,7 @@ class Coup(ActionsWTarget):
         return self.name
 
     def do(self, player, game):
-        print(f"Player {player.name} performs a coup!")
+        #print(f"Player {player.name} performs a coup!")
         player = player
         target_player = self.target_player
         if target_player is None:
@@ -143,7 +139,7 @@ class Tax(Actions):
         super().__init__(name)  # Initialize the parent class (Actions)
     
     def do(self, player, game):
-        print(f"\t\tPlayer {player.name} collects tax!")
+        #print(f"\t\tPlayer {player.name} collects tax!")
 
         player = player
         player.take_coins(game,3)
@@ -155,7 +151,7 @@ class Assassinate(ActionsWTarget):
         super().__init__(name)  # Initialize the parent class (Actions)
 
     def do(self, player, game):
-        print("\t\tAssassination action performed!")
+        #print("\t\tAssassination action performed!")
 
         player = player
         target = self.target_player
@@ -168,7 +164,7 @@ class Steal(ActionsWTarget):
         super().__init__(name)  # Initialize the parent class (Actions)
     
     def do(self, player, game):
-        print("\t\tSteal action performed!")
+        #print("\t\tSteal action performed!")
 
         player = player
         target = self.target_player
@@ -182,7 +178,7 @@ class Exchange(Actions):
         super().__init__(name)  # Initialize the parent class (Actions)
         
     def do(self, player, game):
-        print("\t\tExchange action performed!")
+        #print("\t\tExchange action performed!")
         player = player
     
         player.draw_card(game)
@@ -202,7 +198,7 @@ class Exchange(Actions):
         
         lo_names = [card.name for card in cards]
         if not card_name in lo_names:
-            print("Invalid Selection")
+            #print("Invalid Selection")
             return self.select_bottom(player,game)
         
         card_index = lo_names.index(card_name)        

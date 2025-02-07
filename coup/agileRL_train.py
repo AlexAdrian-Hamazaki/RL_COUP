@@ -5,7 +5,7 @@
 
 # Importing Coup Env
 from coup_env.coup_env import CoupEnv
-from train_multi_agent import train_multi_agent
+from train_multi_agent import MultiAgentTrainer
 
 import copy
 import os
@@ -133,7 +133,7 @@ def main():
     # MultiAgentReplayBuffer.save_to_memory() saves current experience
     # MultiAgentReplayBuffer.sample() samples saved experiences
     
-    field_names = ["state", "action", "reward", "next_state", "done"]
+    field_names = ["state", "action", "reward", "next_state", "termination"]
     memory = MultiAgentReplayBuffer(
         INIT_HP["MEMORY_SIZE"],
         field_names=field_names,
@@ -226,7 +226,8 @@ def main():
             mutations=mutations,  # Mutations object
             action_dim=act_space_dim,
             state_dim=obs_space_dim,
-            total_steps=100,  # Max number of training steps
+            n_players = LESSON['n_players'],
+            max_steps=100,  # Max number of training steps
             max_episodes = 10,  # Total episodes
             episodes_per_epoch = 100,
             evo_epochs = 20, # Evolution frequency
@@ -239,6 +240,10 @@ def main():
             algo="DQN",  # Algorithm
             LESSON=LESSON
     )
+    
+    print(f"Instantiated Multi agent trainer class {multi_agent_trainer}")
+
+    multi_agent_trainer.train_multi_agent()
     
     assert False
     for agent in env.agent_iter():

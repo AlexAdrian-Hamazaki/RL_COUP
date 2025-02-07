@@ -123,55 +123,50 @@ class Turn:
     #####  CLASS FUNCTIONS
     ####################
     
-    def step(self, action, action_map, game): # i need to think about how exactly this is going to work. I need to step to the next state of the game
-        """Depending on the game state defined in turn,
+    # def step(self, action, action_map, game): 
+    #     """Depending on the game state defined in turn,
         
-        take 1 step to the next game state such that it is the current AGENTS TURN ONCE AGAIN
-            this means I have to go through all of the bot's actions within one call of the step function
+    #     take 1 step to the next game state such that it is the current AGENTS TURN ONCE AGAIN
+    #         this means I have to go through all of the bot's actions within one call of the step function
         
-        Sometimes game may receive updated values
+    #     Sometimes game may receive updated values
         
-        States can be 3 fundamental types.
-        A base action state moves to a challenge state. but its seen by a differnt agent. So I think I do need multiple agents here
-        Challenge state then moves to base action state, or to a block action state depending on the end of that state
-        Block action state always moves back to base action state but.
+    #     States can be 3 fundamental types.
+    #     A base action state moves to a challenge state. but its seen by a differnt agent. So I think I do need multiple agents here
+    #     Challenge state then moves to base action state, or to a block action state depending on the end of that state
+    #     Block action state always moves back to base action state but.
 
-        Args:
-            game (_type_): game object
-        """
-        if self.next_action_type == "base_action": #
-            self.game = game
-            self.current_base_action = action_map[action[0]]
-            self.current_base_action_target_int = action[1]
+    #     Args:
+    #         game (_type_): game object
+    #     """
+    #     if self.next_action_type == "base_action": #
+    #         self.game = game
+    #         self.current_base_action = action_map[action[0]]
+    #         self.current_base_action_target_int = action[1]
             
-            if self.current_base_player.type == 'agent':
-                self.exe_base_action()
-                self.reset_for_base_action()
-                return
+    #         if self.current_base_player.type == 'agent':
+    #             self.exe_base_action()
+    #             self.reset_for_base_action()
+    #             return
             
-            if self.current_base_player.type == 'bot': 
-                if self.next_action_type == 'base_action': # base action
-                    self.exe_bot_base_action() # just claims action and returns next observation state
-                    return 
-      
-        elif self.next_action_type == "challenge_action":             
-            if self.current_base_player.type == 'bot': # agent challenges
-                self.challenging_player = game.agent
-                self.challenge_action = action_map[action[0]]
-                self.challenge_action_target_int = action[1]
+    #     elif self.next_action_type == "challenge_action":             
+    #         if self.current_base_player.type == 'bot': # agent challenges
+    #             self.challenging_player = game.agent
+    #             self.challenge_action = action_map[action[0]]
+    #             self.challenge_action_target_int = action[1]
                 
-                if self.challenge_action == "challenge":
-                    print("Agent challenges bot")
-                    self.exe_challenge_action(self.challenging_player, self.game)
-                    self.next_action_type = "base_action" # next action will be base action
-                    return
-                else:
-                    print("Agent does not challenge bot")
-                    self.exe_bot_base_action() # just claims action and returns next observation state
-                    return
+    #             if self.challenge_action == "challenge":
+    #                 #print("Agent challenges bot")
+    #                 self.exe_challenge_action(self.challenging_player, self.game)
+    #                 self.next_action_type = "base_action" # next action will be base action
+    #                 return
+    #             else:
+    #                 #print("Agent does not challenge bot")
+    #                 self.exe_bot_base_action() # just claims action and returns next observation state
+    #                 return
                 
-            if self.current_base_player.type == 'agent': # bot challenges
-                pass
+    #         if self.current_base_player.type == 'agent': # bot challenges
+    #             pass
 
 
     def claim_base_action(self, agent, action):
@@ -189,9 +184,9 @@ class Turn:
         
         self.current_base_action_str = list(action.values())[0]
     
-        # print(self.current_base_player)
-        # print(self.current_target)
-        # print(self.current_base_action_str)
+        # #print(self.current_base_player)
+        # #print(self.current_target)
+        # #print(self.current_base_action_str)
         
         # get action instance
         action_instance = self.game.action_map.get(self.current_base_action_str)()
@@ -200,7 +195,7 @@ class Turn:
         
         # ensure sufficient coins        
         if not action_instance.check_coins(self.current_base_player.coins):
-            print("\t\tInsufficient coins")
+            #print("\t\tInsufficient coins")
             raise ValueError("Insufficient Coins")
         
         # update turn to store claimed action instance
@@ -212,12 +207,14 @@ class Turn:
         # Update game to update every player's knowledge of what every player is claiming
         self.game.update_knowledge()
         
-        print(f"Base action {self.current_base_action_str} was claimed")
+        #print(f"Base action {self.current_base_action_str} was claimed")
     
     def exe_base_action(self) -> None:
         """
         Executes a base action made by the agent
         """
+        # print(self.current_base_player)
+        
         self.current_base_action_instance.do(self.current_base_player, self.game)   
         self.game.update_knowledge()
         return
@@ -241,11 +238,13 @@ class Turn:
                               current_player = current_player,
                               challenging_player = challenging_player)
         
-        
         self.challenge.duel(challenging_player) 
         
         if self.challenge.status == True: # challenge succeeded
             current_player.lose_life(game) # current player loses life
+            # turn the current base action into a PASS action because it just got challenged and is no longer valid
+            self.current_base_action_instance = Actions()
+            
         elif self.challenge.status == False: # challenge failed
             # challenging player loses life
             challenging_player.lose_life(game)
@@ -266,7 +265,7 @@ class Turn:
                 return
             
         if not self.current_base_action_instance.blockable:
-            print("Action is not blockable, doing action")
+            #print("Action is not blockable, doing action")
             self.current_base_action_instance.do(self.current_base_player, self.game)   
             return
             
@@ -283,7 +282,7 @@ class Turn:
     def exe_bot_base_action(self):
         self.claim_action() # adds current base action to players claimed cards.
         if not self.current_base_action_instance.challengable:
-            print("Action is not challengable or blockable, doing action")
+            #print("Action is not challengable or blockable, doing action")
             self.current_base_action_instance.do(self.current_base_player, self.game)            
             return 
         
@@ -352,8 +351,8 @@ class Turn:
         self.update_player_turns(game)
         current_player = self.current_player
         
-        # print current players knowledge
-        # print(current_player.knowledge)
+        # #print current players knowledge
+        # #print(current_player.knowledge)
         # current player claims a certian action        
         self.claim_action(current_player, game)
         self.next_action_type="base_action"
@@ -426,7 +425,7 @@ class Turn:
             self.turn_order_index = 0 # reset order
         self.current_base_player = players[self.turn_order_index]
 
-        # print(f"Player {self.current_player.name}'s turn")
+        # #print(f"Player {self.current_player.name}'s turn")
         self.current_other_players  = players[self.turn_order_index+1:] + players[:self.turn_order_index]
         self.turn_order = [self.current_base_player.name] + [player.name for player in self.current_other_players]
 

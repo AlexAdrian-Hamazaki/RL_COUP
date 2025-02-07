@@ -44,7 +44,7 @@ class Game:
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
         self.update_knowledge()
-        print(f"""Initialized game with {len(self.players)} players""")
+        #print(f"""Initialized game with {len(self.players)} players""")
             
     def __repr__(self):
         result = f"""
@@ -144,7 +144,7 @@ Current Coins in Bank = {self._bank}
         self.revealed_cards[card.name.lower()] +=1 
     
     def _setup_deal(self): # initialize dealing of cards to players
-        print("Dealing Setup Cards")
+        #print("Dealing Setup Cards")
         n=0
         while n < 2 * self._n_players:
             for player in self.players:
@@ -152,7 +152,7 @@ Current Coins in Bank = {self._bank}
                 n+=1        
     
     def _setup_give_coins(self): # initialize giving of cards to players
-        print("Giving Coins to players")
+        #print("Giving Coins to players")
         n = 0
         while n < self._n_players:
             for player in self._players:
@@ -177,7 +177,7 @@ Current Coins in Bank = {self._bank}
     def next_turn(self):
         self.turn.next_turn(self)
         if self.n_players==1:
-            print(f"Player {self.players} wins")
+            #print(f"Player {self.players} wins")
             self.on=False
             
     def assess_game_win(self):

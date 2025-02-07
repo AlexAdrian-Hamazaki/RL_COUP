@@ -94,7 +94,7 @@ class Player():
                 raise ValueError(f"\tNot enough coins to discard {n}")
             else:
                 self.coins-=n
-                # print(f"\tGave {n} couns to bank")
+                # #print(f"\tGave {n} couns to bank")
                 game.bank.add(n)
         except ValueError as e:
             return 0 #action failed flag.
@@ -121,7 +121,7 @@ class Player():
         self.knowledge.remove_from_cards(card)
         self.knowledge.add_to_deck_knowledge(card)
         game.deck.add_to_bottom(card)
-        # print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
+        # #print(f"\t\t\tPlayer {self.name} put a card on bottom of deck")
 
         
     def check_challenge(self, game): # TODO ENVIRONTMENT
@@ -135,7 +135,7 @@ class Player():
         elif contest=="n":
             return False
         else:
-            print("enter valid option (y/n)")
+            #print("enter valid option (y/n)")
             return self.check_challenge(game)
         
     def check_block(self, block): ### UPDATE KNOWLEDGE OF PLAYER
@@ -153,7 +153,7 @@ class Player():
         elif block_status=="n":
             return False
         else:
-            print("enter valid option (y/n)")
+            #print("enter valid option (y/n)")
             return self.check_block(block)
         
                 
@@ -172,7 +172,7 @@ class Player():
             # player has no more cards
             return
         
-        print(f"Agent {self.name} loses 1 life")
+        #print(f"Agent {self.name} loses 1 life")
         dead_int = np.random.choice(range(len(player_cards))) # TODO make this learnable
 
         dead_card = player_cards[dead_int]
@@ -195,8 +195,10 @@ class Player():
     def check_death(self, game):
         # if player is dead, update the turn order
         if len(self.cards)==0:
-            print(f"~~~~~~~~~~Player {self.name} is out of influence~~~~~~~~~~")
+            # print(f"~~~~~~~~~~Player {self.name} is out of influence~~~~~~~~~~")
             self.status = 'dead'
+
+            
             
 
 

@@ -1,7 +1,7 @@
 
 # Importing Coup Env
 from coup_env.coup_env import CoupEnv
-from opponent import Opponent
+from coup_env.coup_player import CoupPlayer
 
 import copy
 import os
@@ -34,6 +34,7 @@ class MultiAgentTrainer:
                 action_dim,
                 state_dim,
                 LESSON,
+                n_players,
                 
                 max_steps = 100, # Max turns in a game do we step through 
                 max_episodes = 100,  # How many games to play, aka filling of nemory buffer
@@ -60,6 +61,8 @@ class MultiAgentTrainer:
         self.mutations = mutations
         self.action_dim = action_dim
         self.state_dim = state_dim
+        self.n_players = n_players
+        
         self.max_steps = max_steps
         self.max_episodes = max_episodes
         self.episodes_per_epoch = episodes_per_epoch
@@ -87,149 +90,7 @@ class MultiAgentTrainer:
 
         env.step(p0_action)  # Act in environment
         observation, cumulative_reward, done, truncation, _ = env.last()
-        p0_next_state, p0_next_state_flipped = transform_and_flip(
-                observation, player = 0
-        )
-        if not opponent_first:
-                score = cumulative_reward
-        turns += 1
-
-        # Check if game is over (Player 0 win)
-        if done or truncation:
-                reward = env.reward(done=True, player=0)
-                memory.save_to_memory_vect_envs(
-                np.concatenate(
-                    (
-                            p0_state,
-                            p1_state,
-                            p0_state_flipped,
-                            p1_state_flipped,
-                    )
-                ),
-                [p0_action, p1_action, 6 - p0_action, 6 - p1_action],
-                [
-                    reward,
-                    LESSON["rewards"]["lose"],
-                    reward,
-                    LESSON["rewards"]["lose"],
-                ],
-                np.concatenate(
-                    (
-                            p0_next_state,
-                            p1_next_state,
-                            p0_next_state_flipped,
-                            p1_next_state_flipped,
-                    )
-                ),
-                [done, done, done, done],
-                )
-        else:  # Play continues
-                if p1_state is not None:
-                reward = env.reward(done=False, player=1)
-                memory.save_to_memory_vect_envs(
-                    np.concatenate((p1_state, p1_state_flipped)),
-                    [p1_action, 6 - p1_action],
-                    [reward, reward],
-                    np.concatenate(
-                            (p1_next_state, p1_next_state_flipped)
-                    ),
-                    [done, done],
-                )
-
-                # Player 1"s turn
-                p1_action_mask = observation["action_mask"]
-                p1_state, p1_state_flipped = transform_and_flip(observation, player = 1)
-
-                if not opponent_first:
-                if LESSON["opponent"] == "self":
-                    p1_action = opponent.get_action(
-                            p1_state, 0, p1_action_mask
-                    )[0]
-                elif LESSON["opponent"] == "random":
-                    p1_action = opponent.get_action(
-                            p1_action_mask,
-                            p0_action,
-                            LESSON["block_vert_coef"],
-                    )
-                else:
-                    p1_action = opponent.get_action(player=1)
-                else:
-                p1_action = agent.get_action(
-                    p1_state, epsilon, p1_action_mask
-                )[
-                    0
-                ]  # Get next action from agent
-                train_actions_hist[p1_action] += 1
-
-                env.step(p1_action)  # Act in environment
-                observation, cumulative_reward, done, truncation, _ = env.last()
-                p1_next_state, p1_next_state_flipped = transform_and_flip(
-                    observation, player = 1
-                )
-
-                if opponent_first:
-                score = cumulative_reward
-                turns += 1
-
-                # Check if game is over (Player 1 win)
-                if done or truncation:
-                reward = env.reward(done=True, player=1)
-                memory.save_to_memory_vect_envs(
-                    np.concatenate(
-                            (
-                            p0_state,
-                            p1_state,
-                            p0_state_flipped,
-                            p1_state_flipped,
-                            )
-                    ),
-                    [
-                            p0_action,
-                            p1_action,
-                            6 - p0_action,
-                            6 - p1_action,
-                    ],
-                    [
-                            LESSON["rewards"]["lose"],
-                            reward,
-                            LESSON["rewards"]["lose"],
-                            reward,
-                    ],
-                    np.concatenate(
-                            (
-                            p0_next_state,
-                            p1_next_state,
-                            p0_next_state_flipped,
-                            p1_next_state_flipped,
-                            )
-                    ),
-                    [done, done, done, done],
-                )
-
-                else:  # Play continues
-                reward = env.reward(done=False, player=0)
-                memory.save_to_memory_vect_envs(
-                    np.concatenate((p0_state, p0_state_flipped)),
-                    [p0_action, 6 - p0_action],
-                    [reward, reward],
-                    np.concatenate(
-                            (p0_next_state, p0_next_state_flipped)
-                    ),
-                    [done, done],
-                )
-
-        # Learn according to learning frequency
-        if (memory.counter % agent.learn_step == 0) and (
-                len(memory) >= agent.batch_size
-        ):
-                # Sample replay buffer
-                # Learn according to agent"s RL algorithm
-                experiences = memory.sample(agent.batch_size)
-                agent.learn(experiences)
-
-        # Stop episode if any agents have terminated
-        if done or truncation:
-                break
+       
         
     def train_one_epoch(self, agent, opponent_pool=[]):
         """Fully trains one agent in the population for one epoch number of episodes (as defined by self.episodes_per_epoch)
@@ -417,19 +278,22 @@ class MultiAgentTrainer:
         """
         Warmup the agent by training it on opponents that make random decisions
         """
-        warm_up_opponent = Opponent(env, difficulty=LESSON["warm_up_opponent"])
-        memory = env.fill_replay_buffer(
-            memory, warm_up_opponent
-        )  # Fill replay buffer with transitions
-        if LESSON["agent_warm_up"] > 0:
+        
+        # Fill replay buffer with transitions
+        self.memory = CoupPlayer.fill_replay_buffer(memory=self.memory,
+                                                    n_players=self.n_players)
+        
+        if self.LESSON["agent_warm_up"] > 0: # number of epochs to warmup on
             print("Warming up agents ...")
-            agent = pop[0]
+            
             # Train on randomly collected samples
-            for epoch in trange(LESSON["agent_warm_up"]):
-                experiences = memory.sample(agent.batch_size)
-                agent.learn(experiences)
-            pop = [agent.clone() for _ in pop]
-            elite = agent
+            for epoch in trange(self.LESSON["agent_warm_up"]):
+                experiences = self.memory.sample(self.elite.batch_size)
+                self.elite.learn(experiences) # Train the agent on the sampled experiences (UPDATING Q-s)
+            
+            # Create our population, which is a population of agents trained on random experiences
+            self.pop = [self.elite.clone() for _ in self.pop]
+            # self.elite = self.elite # Already taken care of with class
             print("Agent population warmed up.")
 
     def train_multi_agent(self):
@@ -448,26 +312,26 @@ class MultiAgentTrainer:
             self.warmup()
         
         
-        pbar = trange(int(self.max_episodes / self.episodes_per_epoch))
+        # pbar = trange(int(self.max_episodes / self.episodes_per_epoch))
 
-        # One Epoch of training (1 epoch is an X number of episodes)
-        for n_epo in pbar:  #
+        # # One Epoch of training (1 epoch is an X number of episodes)
+        # for n_epo in pbar:  #
             
-            self.turns_per_episode = []
-            self.train_actions_hist = [0] * self.action_dim # Make sure to reset these after
+        #     self.turns_per_episode = []
+        #     self.train_actions_hist = [0] * self.action_dim # Make sure to reset these after
             
-            for agent in self.pop:  # Loop through population and train each one individually
-                self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
-                # Update epsilon for exploration
-                self.epsilon = max(self.eps_end, self.epsilon * self.eps_decay)
+        #     for agent in self.pop:  # Loop through population and train each one individually
+        #         self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
+        #         # Update epsilon for exploration
+        #         self.epsilon = max(self.eps_end, self.epsilon * self.eps_decay)
                  
-            self.evolve_pop() # evolve population after one epoch
+        #     self.evolve_pop() # evolve population after one epoch
             
             
-        ### Fully Completed Training
+        # ### Fully Completed Training
         
-        # Save the trained agent
-        save_path = LESSON["save_path"]
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        elite.save_checkpoint(save_path)
-        print(f"Elite agent saved to '{save_path}'.")
+        # # Save the trained agent
+        # save_path = LESSON["save_path"]
+        # os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        # elite.save_checkpoint(save_path)
+        # print(f"Elite agent saved to '{save_path}'.")

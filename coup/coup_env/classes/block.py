@@ -63,7 +63,7 @@ class Block:
         other_players = self.game.turn.other_players
         for other_player in other_players:
             if other_player.check_block(self): # compares player knowledge to game state and asks if they want to block most recent action #TODO
-                print(f"\tPlayer {other_player.name} blocks action")
+                ###print(f"\tPlayer {other_player.name} blocks action")
                 
                 block_action = self.BLOCK_ACTION_MAP[self.turn.current_action.name]() # get an instance of the blocking action required
                 
@@ -79,15 +79,15 @@ class Block:
                 ###### RESULT OF CHALLENGE
                 if challenge.status == 1:
                     self.status = 0 # block action got challenged successfully. Block action does not go through
-                    print("\t\tBlock Success, action does not go through")
+                    ###print("\t\tBlock Success, action does not go through")
                     return 
                 elif challenge.status == 0:  # Block action was challenged, challenge failed. Block goes through
-                    print("\t\tBlock Failed, action goes through")
+                    ###print("\t\tBlock Failed, action goes through")
                     self.status = 1 #
                     return 
                     # and the action still goes through
                 elif challenge.status is None: #No one challenged the block. Block goes through
-                    print("\t\tBlock Success, action does not go through")
+                    ###print("\t\tBlock Success, action does not go through")
                     self.status = 1
                     return 
                 
@@ -95,7 +95,7 @@ class Block:
         target_player = self.turn.current_action.target_player
         
         if target_player.check_block(self): # compares player knowledge to game state and asks if they want to block most recent action #TODO
-            print(f"\tPlayer {target_player.name} blocks action")
+            ###print(f"\tPlayer {target_player.name} blocks action")
             
             block_action = self.BLOCK_ACTION_MAP[self.turn.current_action.name]() # get an instance of the blocking action required
             
@@ -114,14 +114,14 @@ class Block:
                 ###### RESULT OF CHALLENGE
                 if challenge.status == 1:
                     self.status = 0 # block action got challenged successfully. Block action does not go through
-                    print("\t\tBlock Failed, action does not go through")
+                    ###print("\t\tBlock Failed, action does not go through")
                     return 
                 elif challenge.status == 0:  # Block action was challenged, challenge failed. Block goes through
-                    print("\t\tBlock Succeeded, action goes through")
+                    ###print("\t\tBlock Succeeded, action goes through")
                     self.status = 1 #
                     return 
                     # and the action still goes through
                 elif challenge.status is None: #No one challenged the block. Block goes through
-                    print("\t\tBlock Succeeded, action does not go through")
+                    ###print("\t\tBlock Succeeded, action does not go through")
                     self.status = 1
                     return 

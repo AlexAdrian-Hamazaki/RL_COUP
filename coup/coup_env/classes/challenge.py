@@ -47,7 +47,7 @@ class Challenge:
         
     def challenge_fails(self):
         self.status = False
-        print("Challenge Failed")
+        #print("Challenge Failed")
         # # Actions for player whoo was challenged 
         # current_player = self.current_player
         # game = self.game
@@ -68,7 +68,7 @@ class Challenge:
         # self.challenging_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well    
         
     def challenge_succeeds(self):
-        print("Challenge Succeeds")
+        #print("Challenge Succeeds")
         self.status = True
         # # if challenge succeds, active player needs to reveal a card of their choice
         # self.current_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well
@@ -104,10 +104,10 @@ class Challenge:
         #first the current player reveals if they have the card required to do the action
         if self.can_rev_cc(): # if they have the card they claim this will be true
             self.status = False
-            print("Challenge Failed")
+            #print("Challenge Failed")
             
         else: # the current player does not have the card they claim to have the power for
-            print("Challenge Succeeds")
+            #print("Challenge Succeeds")
             self.status = True
             
 
