@@ -1,12 +1,13 @@
 from coup_env import CoupEnv
 from tqdm import tqdm, trange
+from gymnasium.spaces.utils import flatten
 
 class CoupPlayer:
     """This is a helper class to help run COUP in different ways.
     """
     
     @classmethod    
-    def fill_replay_buffer(cls, memory, n_players):
+    def fill_replay_buffer(cls, memory, n_players, obs_space):
         """Fill the replay buffer with experiences collected by taking random actions in the environment.
 
         :param memory: Experience replay buffer
@@ -21,7 +22,6 @@ class CoupPlayer:
         print("Filling replay buffer ...")
         pbar = tqdm(total=memory.memory_size)
         turn_counter = 0
-        mem_full = memory.memory_size
         
         for agent in env.agent_iter():
             turn_counter+=1
@@ -33,27 +33,66 @@ class CoupPlayer:
             # trans_termionation is previous agent's terminating flag for transitioning into this state
             
             observation, reward, termination, _, info = env.last() # reads the observation of the last state from current agent's POV
+            state = observation['observation']
             
-        
+            ### If game ended reset it
+            if info['next_action_type']=="win":
+                
+                env.reset()
+
+                observation, reward, termination, _, info = env.last() # reads the observation of the last state from current agent's POV
+                state = observation['observation']
+                # print(f"Game ended after {turn_counter} turns, reset env")
+                turn_counter = 0
+            
+            
             ###### SELECT ACTION #######
             if termination:
-                # agent died at some point
                 action = None
+
             else:
                 # Randomly sample an action from the action mask
                 action_mask = observation['action_mask']
                 action = env.action_space(agent).sample(action_mask) 
         
-    
             ######### STEP ############
             env.step(action) # current agent steps
             
-            ######## SEE CONSEQUENCE OF STEP ##########
-            next_observation, next_reward, next_termination,_ , info = env.last() # return the observation of the NEXT agent for the CURRENT agent's chosen action
             
-            ######## Select things to put in memory buffer ########
-            state = observation['observation'] # the state observed by our current agent
+            ######## SEE CONSEQUENCE OF STEP ##########
+            next_observation, reward, termination, _, info = env.last() # reads the observation of the last state from current agent's POV
             next_state = next_observation['observation']
+            
+            ########### FLATTEN STATES #############
+            try:
+                assert (next_state in obs_space)
+            except AssertionError:
+                print(next_state)
+                assert False
+            try:
+                state = flatten(obs_space, state)
+                next_state = flatten(obs_space, next_state)
+            except IndexError as e:
+                assert False
+
+            ########### FILL NONE with Pass action #############
+            try:
+                assert state is not None, "Error: state is None!"
+                assert action is not None, "Error: action is None!"
+                assert reward is not None, "Error: reward is None!"
+                assert next_state is not None, "Error: next_state is None!"
+                assert termination is not None, "Error: termination is None!"
+                assert info is not None, "Error: info is None!"
+            except AssertionError as e:
+                print(e)
+                print("state:", state)
+                print("action:", action)
+                print("reward:", reward)
+                print("next_state:", next_state)
+                print("termination:", termination)
+                print("info:", info)
+                raise  # Re-raise the exception to catch the issue
+
             
             # Save experiences to replay buffer
             memory.save_to_memory(
@@ -64,11 +103,7 @@ class CoupPlayer:
                 termination,
                 is_vectorised=False,
             )
-            ### If game ended reset it
-            if info['next_action_type']=="win":
-                env.reset()
-                # print(f"Game ended after {turn_counter} turns, reset env")
-                turn_counter = 0
+
             
             # print(mem_full - len(memory))
             if len(memory) % 100 ==0: 
@@ -81,4 +116,11 @@ class CoupPlayer:
         
         print("Replay buffer warmed up")
         return memory
+    
+    @classmethod
+    def flatten_obs(cls, obs_space, observation):
+        
+        flat = flatten(obs_space, observation)
+        
+        return flat
         

@@ -1,6 +1,7 @@
 from pettingzoo import AECEnv
 import gymnasium as gym
 from gymnasium.spaces import Discrete, Text, Sequence, Dict, Tuple, MultiDiscrete, MultiBinary
+from gymnasium.spaces.utils import flatten_space
 import random
 import functools
 from copy import copy
@@ -44,7 +45,7 @@ class CoupEnv(AECEnv):
         self.agents = [p.name for p in self.game.players] # integer
         self.action = None
         self.possible_agents = self.agents.copy()
-        self._nstep =0
+        self._nstep = 0
         
         ############################################################################
         ###### Mapping integers to names of things ##############################
@@ -112,7 +113,7 @@ class CoupEnv(AECEnv):
                                                 [Discrete(14) for _ in range(self.n_players)]))), # Player_int: Discrete
                     
                     "revealed": Dict(dict(zip(self._card_names_ints[1:], 
-                                            [Discrete(3, start = 0) for _ in range(len(self._card_names_ints[1:]))]))), # Card name, number revealed)
+                                            [Discrete(4, start = 0) for _ in range(len(self._card_names_ints[1:]))]))), # Card name, number revealed)
                         
                     "current_base_player": Discrete(len(self.agents), start = 0), 
                     "current_claimed_card": Discrete(len(self._actions), start = -1), # may not need this
@@ -120,6 +121,7 @@ class CoupEnv(AECEnv):
             'action_mask':
                 MultiBinary(len(self._actions))
         })
+        
 
         self.observation_spaces = dict(zip([agent for agent in self.agents],
                                            [self.observation_space_dict for _ in self.agents]))
@@ -166,11 +168,6 @@ class CoupEnv(AECEnv):
         claims = self.game.claimed_cards
         
 
-
-
-
-
-        
         ###############################################################################
         ######################## OBSERVATION #######################################################
         ##############################################################################################################
@@ -215,6 +212,7 @@ class CoupEnv(AECEnv):
         """
         # observation
         observation = self.state[agent]
+        
         return observation
     
 
@@ -470,20 +468,7 @@ class CoupEnv(AECEnv):
         self._nstep +=1
         #print(self._nstep)
         #print("\n\n")
-        if (self.terminations[self.agent_selection] or self.truncations[self.agent_selection]): # for when you died not on your turn
-            # print(f'Current agent is dead, {self.agent_selection}, skipping action')
-            
-            # handles stepping an agent which is already dead
-            # accepts a None action for the one agent, and moves the agent_selection to
-            # the next dead agent,  or if there are no more dead agents, to the next live agent
-            self._was_dead_step(action)
-            
-            
-            # Handle the case where the agent dies mid round or something. I'm pretty sure I need to set the next action type to be a base action
-            self.infos[self.agent_selection] = {"next_action_type":self.game.turn.next_action_type}
-            
-            
-            return # step does nothing because agent is dead 
+
         
 
 
@@ -560,13 +545,7 @@ class CoupEnv(AECEnv):
         #print(self.rewards)
         #print(self._cumulative_rewards)
         
-        ################################################################# 
-        ###################### IS the Game over ########################### 
-        ################################################################# 
-        if self.check_game_over(): # this needs to go here because it looks at self.agents, which is only updated at the beginning of step
-            
-            return # game is over
-        
+
 
         ################################################################# 
         ###################### Update Next Agent ########################### 
@@ -577,16 +556,23 @@ class CoupEnv(AECEnv):
         next_action_type = self.game.turn.next_action_type
         self.infos[self.agent_selection] = {"next_action_type": next_action_type}
         
-
         
-
+        # Remove Dead Agents
+        [self.remove_dead_agents(agent) for agent in self.agents]
+        
+        ######################  ########################################### 
+        ###################### IS the Game over ########################### 
+        ################################################################# 
+        
+        if self.check_game_over():
+            return # game is over
         return 
     
     def _get_termination(self, agent):
         player = self.game.players[agent]
         return player.status == 'dead'
     
-    def _was_dead_step(self, action: ActionType) -> None:
+    def _was_dead_step(self, agent) -> None:
         """Helper function that performs step() for dead agents.
 
         Does the following:
@@ -604,11 +590,11 @@ class CoupEnv(AECEnv):
                 return
             # main contents of step
         """
-        if action is not None:
-            raise ValueError("when an agent is dead, the only valid action is None")
+        # if action is not None:
+        #     raise ValueError("when an agent is dead, the only valid action is None")
 
         # removes dead agent
-        agent = self.agent_selection
+        
         assert (
             self.terminations[agent] or self.truncations[agent]
         ), "an agent that was not dead as attempted to be removed"
@@ -718,3 +704,26 @@ class CoupEnv(AECEnv):
             self.truncations[agent],
             self.infos[agent],
         )
+        
+    def remove_dead_agents(self, agent):
+        if (self.terminations[agent] or self.truncations[agent]): # for when you died not on your turn
+            # print(f'Current agent is dead, {self.agent_selection}, skipping action')
+        
+            self._was_dead_step(agent)
+            
+            # Handle the case where the agent dies mid round or something. I'm pretty sure I need to set the next action type to be a base action
+            self.infos[agent] = {"next_action_type":self.game.turn.next_action_type}
+        
+    def last_all(self):
+        
+        observations = {agent : self.observe(agent) for agent in self.agents}
+        
+        
+        rewards = {agent:self._cumulative_rewards[agent] for agent in self.agents}
+        terminations = {agent:self.terminations[agent] for agent in self.agents}
+        truncations = {agent:self.truncations[agent] for agent in self.agents}
+        infos = {agent:self.infos[agent] for agent in self.agents}
+        
+        return (observations, rewards, terminations, truncations, infos)
+        
+            

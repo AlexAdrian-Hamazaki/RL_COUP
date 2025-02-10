@@ -25,49 +25,74 @@ import os
 import random
 from collections import deque
 from datetime import datetime
-
+import tensordict
 # Agile Imports
-from agilerl.utils.utils import create_population
-from agilerl.components.multi_agent_replay_buffer import MultiAgentReplayBuffer
-from agilerl.hpo.tournament import TournamentSelection
+import agilerl
+
+from agilerl.algorithms.core.registry import HyperparameterConfig, RLParameter
 from agilerl.hpo.mutation import Mutations
-# from agilerl.training.train_multi_agent import train_multi_agent
+from agilerl.hpo.tournament import TournamentSelection
+from agilerl.utils.algo_utils import obs_channels_to_first
+from agilerl.utils.utils import create_population, observation_space_channels_to_first
+from agilerl.components.replay_buffer import ReplayBuffer
 
 # Gymnasium Imports
 from gymnasium.spaces.utils import flatten_space, flatdim, flatten
 import gymnasium as gym
+from gymnasium.wrappers import FlattenObservation
 
 
 def init_net_conf():
+
+    # Define the network configuration
+    # Define the network configuration
     NET_CONFIG = {
-        "arch": "mlp",  # Network architecture
-        "hidden_size": [32, 32], } # Actor hidden size}
+
+        "head_config": {
+            "hidden_size": [64, 64],  # Actor head hidden size
+        },
+    }
+
     return  NET_CONFIG
 
 def init_hyper_conf():
     # Define the initial hyperparameters
+        # Define the initial hyperparameters
     INIT_HP = {
-    "POPULATION_SIZE": 6,
-    # "ALGO": "Rainbow DQN",  # Algorithm
-    "ALGO": "DQN",  # Algorithm
-    "DOUBLE": True,
-    # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-    "BATCH_SIZE": 256,  # Batch size
-    "LR": 1e-4,  # Learning rate
-    "GAMMA": 0.99,  # Discount factor
-    "MEMORY_SIZE": 100000,  # Max memory buffer size
-    "LEARN_STEP": 1,  # Learning frequency
-    "N_STEP": 1,  # Step number to calculate td error
-    "PER": False,  # Use prioritized experience replay buffer
-    "ALPHA": 0.6,  # Prioritized replay buffer parameter
-    "TAU": 0.01,  # For soft update of target parameters
-    "BETA": 0.4,  # Importance sampling coefficient
-    "PRIOR_EPS": 0.000001,  # Minimum priority for sampling
-    "NUM_ATOMS": 51,  # Unit number of support
-    "V_MIN": 0.0,  # Minimum value of support
-    "V_MAX": 200.0,  # Maximum value of support
+        "POPULATION_SIZE": 6,
+        # "ALGO": "Rainbow DQN",  # Algorithm
+        "ALGO": "DQN",  # Algorithm
+        "DOUBLE": True,
+        # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
+        "BATCH_SIZE": 256,  # Batch size
+        "LR": 1e-4,  # Learning rate
+        "GAMMA": 0.99,  # Discount factor
+        "MEMORY_SIZE": 1000,  # Max memory buffer size
+        "LEARN_STEP": 1,  # Learning frequency
+        "CUDAGRAPHS": False,  # Use CUDA graphs
+        "N_STEP": 1,  # Step number to calculate td error
+        "PER": False,  # Use prioritized experience replay buffer
+        "ALPHA": 0.6,  # Prioritized replay buffer parameter
+        "TAU": 0.01,  # For soft update of target parameters
+        "BETA": 0.4,  # Importance sampling coefficient
+        "PRIOR_EPS": 0.000001,  # Minimum priority for sampling
+        "NUM_ATOMS": 51,  # Unit number of support
+        "V_MIN": 0.0,  # Minimum value of support
+        "V_MAX": 200.0,  # Maximum value of support
     }
     return INIT_HP
+
+
+def init_hp_config():
+        # Mutation config for RL hyperparameters
+    hp_config = HyperparameterConfig(
+        lr=RLParameter(min=1e-4, max=1e-2),
+        batch_size=RLParameter(min=8, max=64, dtype=int),
+        learn_step=RLParameter(
+            min=1, max=120, dtype=int, grow_factor=1.5, shrink_factor=0.75
+        ),
+    )
+    return hp_config
 
 
  
@@ -87,41 +112,51 @@ def main():
     ### Initiate config dictionary for training parameters
     INIT_HP = init_hyper_conf()
     
+    ### hp config
+    hp_config = init_hp_config()    
+
+    num_envs = 8
     ### INSTANTIATE ENVIRONMENT
     # for now just with 2 players
     env = CoupEnv(n_players=2)
     env.reset(seed=42)
     
+        
     ### Configure observation Space for training
-    obs_space_dim = [flatdim(env.observation_space(agent)["observation"]) for agent in env.agents][0]
-    obs_space_dim = [obs_space_dim] # make it a tuple
-    ### Configure action space for training
-    act_space_dim = [flatdim(env.action_space(agent)) for agent in env.agents][0]
     
-    print(f"Observation space dim for each agent {obs_space_dim}")
-    print(f"Action space dim for each agent {act_space_dim}")
-    
+    # Configure the algo input arguments
 
-    # Append number of agents and agent IDs to the initial hyperparameter dictionary
-    INIT_HP["N_AGENTS"] = env.n_players
-    INIT_HP["AGENT_IDS"] = env.agents
-    
+    action_spaces = [env.action_space(agent) for agent in env.agents]
+
+    assert flatten(env.observation_space(0), env.observation_space(0).sample()) in flatten_space(env.observation_space(0))
+
+    observation_space = flatten_space(env.observation_space(0)['observation'])
+    action_space = env.action_space(0)
+
+
+    print(f"Observation space dim for each agent {observation_space}")
+    print(f"Action space dim for each agent {action_space}")
+    print("Obs Space")
+    print(observation_space)
+    print("Action Space")
+    print(action_space)
+
     
     ##############################################################################
     ### Create a population of agents for evolutionary hyper-parameter optimization
     ##############################################################################
-
-    # Best model will be selected from population to keep
+    # Create a population ready for evolutionary hyper-parameter optimisation
     pop = create_population(
-                            algo = INIT_HP["ALGO"],
-                            state_dim = obs_space_dim,
-                            action_dim = act_space_dim,
-                            one_hot = False,
-                            net_config = NET_CONFIG,
-                            INIT_HP = INIT_HP,
-                            population_size = INIT_HP['POPULATION_SIZE'],
-                            device=device
-                            )
+        INIT_HP["ALGO"],
+        observation_space,
+        action_spaces[0],
+        NET_CONFIG,
+        INIT_HP,
+        hp_config,
+        population_size=INIT_HP["POPULATION_SIZE"],
+        device=device,
+    )
+
     
     
     ##############################################################################
@@ -134,12 +169,11 @@ def main():
     # MultiAgentReplayBuffer.sample() samples saved experiences
     
     field_names = ["state", "action", "reward", "next_state", "termination"]
-    memory = MultiAgentReplayBuffer(
-        INIT_HP["MEMORY_SIZE"],
-        field_names=field_names,
-        agent_ids=INIT_HP["AGENT_IDS"],
+    memory = ReplayBuffer(
+        memory_size=INIT_HP["MEMORY_SIZE"],  # Max replay buffer size
+        field_names=field_names,  # Field names to store in memory
         device=device,
-    )
+        )
     
     print(f"Instantiated memory buffer class {memory}")
 
@@ -179,31 +213,16 @@ def main():
     
     # Instantiate a mutations object (used for HPO)
     mutations = Mutations(
-        algo=INIT_HP["ALGO"],
         no_mutation=0.2,  # Probability of no mutation
         architecture=0,  # Probability of architecture mutation
         new_layer_prob=0.2,  # Probability of new layer mutation
         parameters=0.2,  # Probability of parameter mutation
         activation=0,  # Probability of activation function mutation
         rl_hp=0.2,  # Probability of RL hyperparameter mutation
-        rl_hp_selection=[
-                "lr",
-                "learn_step",
-                "batch_size",
-        ],  # RL hyperparams selected for mutation
         mutation_sd=0.1,  # Mutation strength
-        # Define search space for each hyperparameter
-        min_lr=0.0001,
-        max_lr=0.01,
-        min_learn_step=1,
-        max_learn_step=120,
-        min_batch_size=8,
-        max_batch_size=64,
-        arch=NET_CONFIG["arch"],  # MLP or CNN
         rand_seed=1,
         device=device,
-        )
-    
+    )
     print(f"Instantiated mutations class {mutations}")
     
     
@@ -224,8 +243,8 @@ def main():
             net_config=NET_CONFIG,  # Network configuration
             tournament=tournament,  # Tournament selection object
             mutations=mutations,  # Mutations object
-            action_dim=act_space_dim,
-            state_dim=obs_space_dim,
+            action_space=action_space,
+            observation_space=observation_space,
             n_players = LESSON['n_players'],
             max_steps=100,  # Max number of training steps
             max_episodes = 10,  # Total episodes
@@ -241,10 +260,33 @@ def main():
             LESSON=LESSON
     )
     
+    
+    
     print(f"Instantiated Multi agent trainer class {multi_agent_trainer}")
 
     multi_agent_trainer.train_multi_agent()
     
+    
+    # trained_pop, pop_fitnesses = train_multi_agent(
+    #     env=env,  # Pettingzoo-style environment
+    #     env_name='coup',  # Environment name
+    #     algo=INIT_HP["ALGO"],  # Algorithm
+    #     pop=pop,  # Population of agents
+    #     memory=memory,  # Replay buffer
+    #     INIT_HP=INIT_HP,  # IINIT_HP dictionary
+    #     net_config=NET_CONFIG,  # Network configuration
+    #     # swap_channels=INIT_HP['CHANNELS_LAST'],  # Swap image channel from last to first
+    #     max_steps=2000000,  # Max number of training steps
+    #     evo_steps=10000,  # Evolution frequency
+    #     eval_steps=None,  # Number of steps in evaluation episode
+    #     eval_loop=1,  # Number of evaluation episodes
+    #     learning_delay=1000,  # Steps before starting learning
+    #     target=200.,  # Target score for early stopping
+    #     tournament=tournament,  # Tournament selection object
+    #     mutation=mutations,  # Mutations object
+    #     wb=False,  # Weights and Biases tracking
+    # )
+        
     assert False
     for agent in env.agent_iter():
         observation, reward, termination, truncation, info = env.last()

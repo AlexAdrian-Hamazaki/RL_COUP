@@ -31,8 +31,8 @@ class MultiAgentTrainer:
                 net_config,  # Network configuration
                 tournament,  # Tournament selection object
                 mutations,  # Mutations object
-                action_dim,
-                state_dim,
+                action_space,
+                observation_space,
                 LESSON,
                 n_players,
                 
@@ -59,8 +59,8 @@ class MultiAgentTrainer:
         self.net_config = net_config
         self.tournament = tournament
         self.mutations = mutations
-        self.action_dim = action_dim
-        self.state_dim = state_dim
+        self.action_space = action_space
+        self.observation_space = observation_space
         self.n_players = n_players
         
         self.max_steps = max_steps
@@ -281,14 +281,31 @@ class MultiAgentTrainer:
         
         # Fill replay buffer with transitions
         self.memory = CoupPlayer.fill_replay_buffer(memory=self.memory,
-                                                    n_players=self.n_players)
-        
+                                                    n_players=self.n_players,
+                                                    obs_space = self.env.observation_space_dict['observation'])        
         if self.LESSON["agent_warm_up"] > 0: # number of epochs to warmup on
             print("Warming up agents ...")
             
             # Train on randomly collected samples
             for epoch in trange(self.LESSON["agent_warm_up"]):
                 experiences = self.memory.sample(self.elite.batch_size)
+                
+                # print(experiences)
+                # Print "shape" (number of fields)
+                # print(self.elite.batch_size)
+                # print(f"Shape: (1, {len(experiences)})")  # 1 row, N columns
+
+                # Print headers (field names)
+                # print("Element types:", tuple(type(x).__name__ for x in experiences))
+                
+                
+                # Print tensor shapes
+                # tensor_shapes = tuple(t.shape for t in experiences)
+
+                # print("Tuple shape:", (1, len(experiences)))  # (1, 5) structure
+                # print("Tensor shapes:", tensor_shapes)
+                
+                #### TREACH AGENT
                 self.elite.learn(experiences) # Train the agent on the sampled experiences (UPDATING Q-s)
             
             # Create our population, which is a population of agents trained on random experiences
@@ -310,13 +327,19 @@ class MultiAgentTrainer:
         # Perform buffer and agent warmups if desired
         if self.LESSON["buffer_warm_up"]:
             self.warmup()
-        
-        
-        # pbar = trange(int(self.max_episodes / self.episodes_per_epoch))
-
-        # # One Epoch of training (1 epoch is an X number of episodes)
-        # for n_epo in pbar:  #
             
+        
+        
+        # pbar for tracking epochs
+        pbar = trange(int(self.max_episodes / self.episodes_per_epoch))
+
+        # One Epoch of training (1 epoch is an X number of episodes)
+        print("==========================================")
+        print("Beginning Self-training")
+        print("==========================================")
+        
+        for n_epo in pbar:  #
+            pass
         #     self.turns_per_episode = []
         #     self.train_actions_hist = [0] * self.action_dim # Make sure to reset these after
             
@@ -328,10 +351,10 @@ class MultiAgentTrainer:
         #     self.evolve_pop() # evolve population after one epoch
             
             
-        # ### Fully Completed Training
+        ### Fully Completed Training
         
-        # # Save the trained agent
-        # save_path = LESSON["save_path"]
-        # os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        # elite.save_checkpoint(save_path)
-        # print(f"Elite agent saved to '{save_path}'.")
+        # Save the trained agent
+        save_path = self.LESSON["save_path"]
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        self.elite.save_checkpoint(save_path)
+        print(f"Elite agent saved to '{save_path}'.")
