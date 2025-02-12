@@ -1,0 +1,37 @@
+---
+
+# Coup lesson  3
+# Train against random agent: 'random', weak opponent: 'weak', strong opponent: 'strong', or use self-play: 'self'
+opponent: strong
+opponent_pool_size:       # Size of opponent pool for self-play
+opponent_upgrade:       # Epoch frequency to update opponent pool
+eval_opponent: strong  # 'random', 'weak' or 'strong'
+pretrained_path: models/DQN/lesson2_trained_agent.pt   # Path to pretrained model weights
+save_path: models/DQN/lesson3_trained_agent.pt  # Path to save trained model
+max_train_episodes: 30000 # Maximum number of training episodes in environment
+max_steps: 100  # Max turns in a game
+max_episodes: 100  # Number of games to play
+episodes_per_epoch: 10  # Number of games before updating Q network
+evo_epochs: 20  # Frequency of HPO evaluation and mutation
+evo_loop: 50  # Number of evaluation episodes for hyperparameter selection
+epsilon: 1.0  # Starting epsilon value
+eps_end: 0.1  # Final epsilon value
+eps_decay: 0.9998  # Epsilon decay rate
+opp_update_counter: 0  # Counter for opponent updates
+env_name: 'COUP_v0.1'  # Environment name
+algo: "DQN"  # Algorithm
+
+
+## Game specific:
+## Game specific:
+buffer_warm_up: false  # Fill replay buffer with random experiences
+warm_up_opponent:       # Difficulty level of warm up experiences
+agent_warm_up: 0  # Number of epochs to warm up agent by training on random experiences
+rewards:  # Rewards for different outcomes
+    win: 1
+    lose: -1
+    coins: 0.1
+    kill: 0.5
+    lose_life: -0.5
+    deck_knowledge: 0
+    play_continues: 0

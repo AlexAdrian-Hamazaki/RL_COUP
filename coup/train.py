@@ -6,6 +6,7 @@
 # Importing Coup Env
 from coup_env.coup_env import CoupEnv
 from train_multi_agent import MultiAgentTrainer
+from curriculum_env import CurriculumEnv
 
 import copy
 import os
@@ -114,11 +115,15 @@ def main():
     
     ### hp config
     hp_config = init_hp_config()    
+    
+    ### Load warmup lesson
+    with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
+        LESSON = yaml.safe_load(file)
 
     num_envs = 8
     ### INSTANTIATE ENVIRONMENT
     # for now just with 2 players
-    env = CoupEnv(n_players=2)
+    env = CoupEnv(n_players=LESSON['n_players'])
     env.reset(seed=42)
     
         
@@ -226,13 +231,18 @@ def main():
     print(f"Instantiated mutations class {mutations}")
     
     
+    
+    ##############################################################################
+    ### Wrap Env in a Curriculum env
+    ##############################################################################
+        
+    
+    env = CurriculumEnv(LESSON)
+    
     ##############################################################################
     ### Training loop
     ##############################################################################
-        
-    with open("/home/aadrian/Documents/RL_projects/RL_COUP/coup/coup_env/lesson1.yaml") as file:
-        LESSON = yaml.safe_load(file)
-    
+
     
     multi_agent_trainer = MultiAgentTrainer(
             env=env,  # Pettingzoo-style environment
@@ -245,18 +255,8 @@ def main():
             mutations=mutations,  # Mutations object
             action_space=action_space,
             observation_space=observation_space,
+            device=device,
             n_players = LESSON['n_players'],
-            max_steps=100,  # Max number of training steps
-            max_episodes = 10,  # Total episodes
-            episodes_per_epoch = 100,
-            evo_epochs = 20, # Evolution frequency
-            evo_loop = 50, # Number of evaluation episodes
-            epsilon = 1.0,  # Starting epsilon value
-            eps_end = 0.1,  # Final epsilon value
-            eps_decay = 0.9998,  # Epsilon decays
-            opp_update_counter = 0,
-            env_name='COUP_v0.1',  # Environment name
-            algo="DQN",  # Algorithm
             LESSON=LESSON
     )
     
@@ -267,26 +267,6 @@ def main():
     multi_agent_trainer.train_multi_agent()
     
     
-    # trained_pop, pop_fitnesses = train_multi_agent(
-    #     env=env,  # Pettingzoo-style environment
-    #     env_name='coup',  # Environment name
-    #     algo=INIT_HP["ALGO"],  # Algorithm
-    #     pop=pop,  # Population of agents
-    #     memory=memory,  # Replay buffer
-    #     INIT_HP=INIT_HP,  # IINIT_HP dictionary
-    #     net_config=NET_CONFIG,  # Network configuration
-    #     # swap_channels=INIT_HP['CHANNELS_LAST'],  # Swap image channel from last to first
-    #     max_steps=2000000,  # Max number of training steps
-    #     evo_steps=10000,  # Evolution frequency
-    #     eval_steps=None,  # Number of steps in evaluation episode
-    #     eval_loop=1,  # Number of evaluation episodes
-    #     learning_delay=1000,  # Steps before starting learning
-    #     target=200.,  # Target score for early stopping
-    #     tournament=tournament,  # Tournament selection object
-    #     mutation=mutations,  # Mutations object
-    #     wb=False,  # Weights and Biases tracking
-    # )
-        
     assert False
     for agent in env.agent_iter():
         observation, reward, termination, truncation, info = env.last()

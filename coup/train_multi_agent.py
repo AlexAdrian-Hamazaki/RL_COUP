@@ -2,6 +2,7 @@
 # Importing Coup Env
 from coup_env.coup_env import CoupEnv
 from coup_env.coup_player import CoupPlayer
+from opponent import Opponent
 
 import copy
 import os
@@ -20,6 +21,11 @@ import os
 import random
 from collections import deque
 from datetime import datetime
+from gymnasium.spaces.utils import flatten
+
+
+# Agile imports
+from agilerl.algorithms.dqn import DQN
 
 class MultiAgentTrainer:
     def __init__(self,
@@ -35,19 +41,9 @@ class MultiAgentTrainer:
                 observation_space,
                 LESSON,
                 n_players,
+                device,
                 
-                max_steps = 100, # Max turns in a game do we step through 
-                max_episodes = 100,  # How many games to play, aka filling of nemory buffer
-                episodes_per_epoch = 10, # How many games you play before updating Q network with memory buffer
-                evo_epochs = 20, # How frequently we evaluate the HPOs and mutate them via tournament->mutation loop
-                evo_loop = 50, # Number of evaluation episodes for evaluationg which hyperparameters work best
-                
-                epsilon = 1.0,  # Starting epsilon value
-                eps_end = 0.1,  # Final epsilon value
-                eps_decay = 0.9998,  # Epsilon decays
-                opp_update_counter = 0,
-                env_name='COUP_v0.1',  # Environment name
-                algo="DQN",  # Algorithm,
+
                 
             ):
         
@@ -62,77 +58,200 @@ class MultiAgentTrainer:
         self.action_space = action_space
         self.observation_space = observation_space
         self.n_players = n_players
+        self.device = device
         
-        self.max_steps = max_steps
-        self.max_episodes = max_episodes
-        self.episodes_per_epoch = episodes_per_epoch
-        self.evo_epochs = evo_epochs
-        self.evo_loop = evo_loop
-        self.epsilon = epsilon
-        self.eps_end = eps_end
-        self.eps_decay = eps_decay
-        self.opp_update_counter = opp_update_counter
-        self.env_name = env_name
-        self.algo = algo
         self.LESSON = LESSON
+        self.max_steps = LESSON["max_steps"]
+        self.max_episodes = LESSON["max_episodes"]
+        self.episodes_per_epoch = LESSON["episodes_per_epoch"]
+        self.evo_epochs = LESSON["evo_epochs"]
+        self.evo_loop = LESSON["evo_loop"]
+        self.epsilon = LESSON["epsilon"]
+        self.eps_end = LESSON["eps_end"]
+        self.eps_decay = LESSON["eps_decay"]
+        self.opp_update_counter = LESSON["opp_update_counter"]
+        self.env_name = LESSON["env_name"]
+        self.algo = LESSON["algo"]
+        
+        # For training
+        self.opponent_pool = []
         
         
     
-    def play_game(self, agent, observation, cumulative_reward,
-                  terminations, truncations, info):
+    def play_game(self, real_agent, opponent):
+        """Play games for this agent against the opponent until we reach our max steps per episode
+        adding to memory buffer as we go on
         
-        action_mask = observation["action_mask"]
-        state = observation['observation']
-        
-        
-        action = agent.get_action(state, self.epsilon, action_mask)[0]  # Get next action from agent
-        train_actions_hist[action] += 1
+        # TODO ENABLE MULTIPLE OPPONENTS
 
-        env.step(p0_action)  # Act in environment
-        observation, cumulative_reward, done, truncation, _ = env.last()
-       
+        Args:
+            agent (AgentClass): Current agent we are training from agent pool
+            opponent (AgentClass): Frozen (or from opponent pool in case of self) agent we play against
+        """
         
-    def train_one_epoch(self, agent, opponent_pool=[]):
+        self.env.reset()
+        # randomly select what position agent plays in
+        agent_position = np.random.randint(0, self.n_players)
+        
+        ### Replace the pettingzoo environment's  "agents" list (which is just a list of ints)
+        # with actual agent DQNs
+        lo_agents = []
+        for agent_int in self.env.agents:
+            if agent_int == agent_position:
+                lo_agents.append(real_agent)
+            else:
+                lo_agents.append(opponent.model)
+
+        for agent in lo_agents:
+            assert (isinstance(agent, DQN))
+            
+        
+        
+        # Get Obs space for flattening
+        obs_space = self.env.observation_space_dict['observation']
+         
+        step_counter = 0
+        # assert False
+        for agent in self.env.agent_iter(): #NOTE: This we are iterating over actual DQN classes
+            step_counter +=1 # uptick step counter
+        
+            
+            agent = lo_agents[agent]
+            assert isinstance(agent, DQN)
+            
+            
+            
+            observation, reward, termination, _, info = self.env.last() # reads the observation of the last state from current agent's POV
+            state = observation['observation']
+                    
+            
+            ########### FLATTEN STATE #############
+            try:
+
+                state = flatten(obs_space, state)
+            except IndexError as e:
+                assert False
+            
+            ###### SELECT ACTION #######
+            if termination:
+                action = None
+                assert False # this shouldnt't be gotten to anymore because termination flag is handled after step now
+
+            else:
+                # Agent or opponet samples action according to policy
+                action_mask = observation['action_mask']
+                action = agent.get_action(state, self.epsilon, action_mask)[0]
+                
+            ######### STEP ############
+            self.env.step(action) # current agent steps
+            
+            
+            ######## SEE CONSEQUENCE OF STEP ##########
+            next_observation, reward, termination, _, info = self.env.last() # reads the observation of the last state from current agent's POV
+            next_state = next_observation['observation']
+            
+            ########### FLATTEN STATES #############
+            try:
+                assert (next_state in obs_space)
+            except AssertionError:
+                print(next_state)
+                assert False
+            try:
+                next_state = flatten(obs_space, next_state)
+            except IndexError as e:
+                assert False
+
+            ########### FILL NONE with Pass action #############
+            try:
+                assert state is not None, "Error: state is None!"
+                assert action is not None, "Error: action is None!"
+                assert reward is not None, "Error: reward is None!"
+                assert next_state is not None, "Error: next_state is None!"
+                assert termination is not None, "Error: termination is None!"
+                assert info is not None, "Error: info is None!"
+            except AssertionError as e:
+                print(e)
+                print("state:", state)
+                print("action:", action)
+                print("reward:", reward)
+                print("next_state:", next_state)
+                print("termination:", termination)
+                print("info:", info)
+                raise  # Re-raise the exception to catch the issue
+
+            
+            # Save experiences to replay buffer if its the agent that did the action
+            if real_agent == agent:
+                self.memory.save_to_memory(
+                    state,
+                    action,
+                    reward,
+                    next_state,
+                    termination,
+                    is_vectorised=False,
+                )
+                
+            ### If game ended reset it
+            ### If game ended or max steps reached, exit loop
+            if info['next_action_type'] == "win" or step_counter >= self.LESSON['max_steps']:
+                break
+
+        
+    def train_one_epoch(self, agent):
         """Fully trains one agent in the population for one epoch number of episodes (as defined by self.episodes_per_epoch)
 
         Args:
             agent (_type_): _description_
         """
-        turns_per_episode = []
+        
         agent_reward_per_episode = []
         
         
-        if self.opponent == "self":
+        if self.opponent_pool: # if we have opponent pol we are training against self
             # Randomly choose opponent from opponent pool if using self-play
-            opponent = random.choice(opponent_pool)
+            opponent = random.choice(self.opponent_pool)
         else:
             # Create opponent of desired difficulty
-            opponent = Opponent(self.env, difficulty='random')
+            opponent = self.opponent
         
         
-        for n_episode in range(self.episodes_per_epoch): # one eposode is one training of an agent in the pop. this is for one epoch
-            
-            self.env.reset()  # Reset environment at start of episode
+        for n_games in range(self.episodes_per_epoch): # one eposode is one training of an agent in the pop. this is for one epoch
             
             # Right now, just make our agent always go first # TODO enable variable start
+            # This agent plays 1 game. Filling memory buffer
+            self.play_game(agent, opponent)
 
-            self.play_game(agent, self.env)
-
-            # Collect some metrics            
-            turns_per_episode.append(self.env.n_turns) # something like this. number of turns in the game# TODO
-            agent_reward_per_episode.append(self.env.reward) # something like this. number of turns in the game# TODO
+            # Collect some metrics
+            print(self.env._cumulative_rewards)
+            agent_reward_per_episode.append(self.env._cumulative_rewards) # something like this. number of turns in the game# TODO
+        
+        
+        #### METRICS TO PRINT
+        agent_reward_per_epoch = np.mean(agent_reward_per_episode)
+        print(agent_reward_per_epoch)
+        
+        
+                     
+        # Learn according to learning frequency
+        if (memory.counter % agent.learn_step == 0) and (
+            len(memory) >= agent.batch_size
+        ):
+            # Sample replay buffer
+            # Learn according to agent"s RL algorithm
+            experiences = memory.sample(agent.batch_size)
+            agent.learn(experiences)
             
             
-            # If we are playing self, here you can make clone yourself and make the new opponent pool an upgraded version of agent
-            self.make_opponents_me()
-            if LESSON["opponent"] == "self":
-               if (total_episodes % LESSON["opponent_upgrade"] == 0) and (
-                     (idx_epi + 1) > evo_epochs
-               ):
-                     elite_opp, _, _ = tournament._elitism(pop)
-                     elite_opp.actor.eval()
-                     opponent_pool.append(elite_opp)
-                     opp_update_counter += 1
+        # If we are playing self, here you can make clone yourself and make the new opponent pool an upgraded version of agent
+        self.make_opponents_me()
+        if LESSON["opponent"] == "self":
+            if (total_episodes % LESSON["opponent_upgrade"] == 0) and (
+                    (idx_epi + 1) > evo_epochs
+            ):
+                    elite_opp, _, _ = tournament._elitism(pop)
+                    elite_opp.actor.eval()
+                    opponent_pool.append(elite_opp)
+                    opp_update_counter += 1
         ######
         ### EPOCH IS DONE
         ######
@@ -320,16 +439,20 @@ class MultiAgentTrainer:
         Trains multi-agent for a DQN
         """
         
-        if self.LESSON["opponent"] == "self":
-            self.setup_opponent_pool()
-
-
         # Perform buffer and agent warmups if desired
+
         if self.LESSON["buffer_warm_up"]:
             self.warmup()
             
+        ### Handle opponent initiation # needs to be done outside of epoch training loop for self-case
+        if self.LESSON["opponent"] == "self":
+            self.setup_opponent_pool()
+            print(f"Setup opponent pool for self-training {self.opponent_pool}")
+        elif self.LESSON['opponent'] !='self':
+            self.opponent = Opponent(difficulty=self.LESSON['opponent'], device=self.device)
+            print(f"Loaded Opponent from {self.opponent}")
         
-        
+    
         # pbar for tracking epochs
         pbar = trange(int(self.max_episodes / self.episodes_per_epoch))
 
@@ -338,21 +461,20 @@ class MultiAgentTrainer:
         print("Beginning Self-training")
         print("==========================================")
         
-        for n_epo in pbar:  #
-            pass
-        #     self.turns_per_episode = []
-        #     self.train_actions_hist = [0] * self.action_dim # Make sure to reset these after
-            
-        #     for agent in self.pop:  # Loop through population and train each one individually
-        #         self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
-        #         # Update epsilon for exploration
-        #         self.epsilon = max(self.eps_end, self.epsilon * self.eps_decay)
+        for epoch in pbar:
+            # Train each agent in our pop for this epoch
+            for agent in self.pop:  # Loop through population and train each one individually
+                self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
+                # Update epsilon for exploration
+                self.epsilon = max(self.eps_end, self.epsilon * self.eps_decay)
                  
-        #     self.evolve_pop() # evolve population after one epoch
+            self.evolve_pop() # evolve population after one epoch
             
             
-        ### Fully Completed Training
-        
+            
+        print("==========================================")
+        print("Finished Self-training")
+        print("==========================================")
         # Save the trained agent
         save_path = self.LESSON["save_path"]
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

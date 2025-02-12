@@ -431,9 +431,9 @@ class CoupEnv(AECEnv):
             # update game state
             self.state = {agent: self._get_obs(agent) for agent in self.agents} 
             # update rewards
-            self.rewards  = {agent: self._get_reward(agent) for agent in self.agents}
-            self._cumulative_rewards[self.agent_selection]= 0
-            self._accumulate_rewards()
+            # self.rewards  = {agent: self._get_reward(agent) for agent in self.agents}
+            # self._cumulative_rewards[self.agent_selection]= 0
+            # self._accumulate_rewards()
             self.infos[self.agent_selection] = {'next_action_type':"win"}
 
             return True
@@ -469,7 +469,7 @@ class CoupEnv(AECEnv):
         #print(self._nstep)
         #print("\n\n")
 
-        
+        prev_state = self.state.copy()
 
 
         # Its not over
@@ -532,21 +532,8 @@ class CoupEnv(AECEnv):
         # update truncations
         # never update truncations right now -> but if you need to now then do it here
         
-        # update terminations
-        self.terminations = {agent: self._get_termination(agent) for agent in self.agents}
 
-        # update rewards
-        # First reset the reward dic so we dont accumulate last step's rewards
-        self._reset_rewards()
-        self.rewards  = {agent: self._get_reward(agent) for agent in self.agents}
-        #print(self._cumulative_rewards)
-
-        self._accumulate_rewards() 
-        #print(self.rewards)
-        #print(self._cumulative_rewards)
         
-
-
         ################################################################# 
         ###################### Update Next Agent ########################### 
         ################################################################# 
@@ -556,15 +543,33 @@ class CoupEnv(AECEnv):
         next_action_type = self.game.turn.next_action_type
         self.infos[self.agent_selection] = {"next_action_type": next_action_type}
         
+        ######################  ########################################### 
+        ###################### handeling agent death ########################### 
+        ################################################################# 
+        
+        # update terminations
+        self.terminations = {agent: self._get_termination(agent) for agent in self.agents}
         
         # Remove Dead Agents
         [self.remove_dead_agents(agent) for agent in self.agents]
+        
+        # TODO HANDEL DEAD AGENTS AND REWARD GETTING. SOMETHINGS NOT RIGHT HERE
+        
+        
+        ######################  ########################################### 
+        ###################### Updating rewards ########################### 
+        ################################################################# 
+        # First reset the reward dic so we dont accumulate last step's rewards
+        self._reset_rewards()
+        self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
+        self._accumulate_rewards() # add rewards for this agent
+        #print(self.rewards)
         
         ######################  ########################################### 
         ###################### IS the Game over ########################### 
         ################################################################# 
         
-        if self.check_game_over():
+        if self.check_game_over(): # raise termination flag in infos
             return # game is over
         return 
     
@@ -628,24 +633,123 @@ class CoupEnv(AECEnv):
         self.rewards = {agent: 0 for agent in self.agents}
         
     
-    def _get_reward(self, agent) -> int:
-        """Get reward of current agent
-        
-        Note. i may make this more expressive later on
+    def _agent_won(self, agent) -> bool:
+        """check if agent won
 
+        """
+        if len(self.agents) == 1 and agent in self.agents:
+            return True
+        
+        else:
+            return False
+                    
+    def _agent_lost(self,agent) -> bool:
+        """check if agent lost
+
+        """
+        if self.terminations[agent] == True: # if agent died this turn
+            return True
+        else:
+            return False
+        
+    def _agent_gained_coins(self, agent, prev_state) -> int:
+        """Return a number of coins equal to how many the agent just got
+
+        Args:
+            agent (_type_): _description_
+
+        Returns:
+            int: _description_
+        """
+        prev_coins = prev_state[agent]['observation']['money'][agent]
+        coins = self.state[agent]['observation']['money'][agent]
+    
+        return coins-prev_coins
+        
+    def _agent_killed(self, agent, prev_state) -> bool:
+        """Return a bool indicating if current agen't step killed another agent's card
+
+        Args:
+            agent (_type_): _description_
+
+        Returns:
+            int: _description_
+        """
+        prev_agent_cards = prev_state[agent]['observation']['n_cards'].copy()
+        agent_cards = self.state[agent]['observation']['n_cards'].copy()
+        
+        
+        prev_agent_cards.pop(agent)
+        agent_cards.pop(agent)
+        
+        
+        for iter_agent in list(prev_agent_cards.keys() & agent_cards.keys()):  # Find common keys
+            difference_in_cards = int(agent_cards[iter_agent]) - int(prev_agent_cards[iter_agent])  # Subtract values
+            if difference_in_cards > 0:
+                return True
+        return False
+    
+    def _agent_lost_life(self, agent, prev_state) -> bool:
+        """Return a bool indicating if current agent lost a card
+
+        Args:
+            agent (_type_): _description_
+
+        Returns:
+            int: _description_
+        """
+        prev_agent_cards = prev_state[agent]['observation']['n_cards']
+        agent_cards = self.state[agent]['observation']['n_cards']
+        difference_in_cards = agent_cards[agent] - prev_agent_cards[agent]  # Subtract values
+        
+        if difference_in_cards >0:
+            return True
+        return False
+
+    
+    
+    def _get_reward(self, agent, prev_state) -> int:
+        """Get reward of current agent
+    
         Args:
             agent (_type_): _description_
 
         Returns:
             _type_: _description_
         """
-        if self.terminations[agent] == True: # if agent died this turn
-            return -1
+        # Get rewards for each game state change
+        win  = 1
+        lose = -1
+        coins = 0.1
+        kill = 0.5
+        lose_life = -0.5
         
-        if len(self.agents)==1:        
-            return 1
         
-        return 0
+        # init reward for this agent
+        reward = 0
+        
+        # check if agent just won game
+        if self._agent_won(agent):
+            reward+=win
+        
+        # check if agent just lost game
+        if self._agent_lost(agent):
+            assert False
+            reward+=lose
+        
+        # check if agent got coins. Get coins value reward for each coin you get
+        if self._agent_gained_coins(agent, prev_state)>0:
+            reward+=coins*self._agent_gained_coins(agent,prev_state)
+        
+        # check if agent killed someone
+        if self._agent_killed(agent, prev_state):
+            reward+=kill
+            
+        # check if agent lost life
+        if self._agent_lost_life(agent, prev_state):
+            reward+=lose_life
+        
+        return reward
         
 
     def _convert_action(self, action: ActionType) -> dict[AgentID, str]:
