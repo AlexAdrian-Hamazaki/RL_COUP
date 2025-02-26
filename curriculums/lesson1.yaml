@@ -30,10 +30,10 @@ buffer_warm_up: true  # Fill replay buffer with random experiences
 warm_up_opponent: random  # Difficulty level of warm up experiences
 agent_warm_up: 1  # Number of epochs to warm up agent by training on random experiences
 rewards:  # Rewards for different outcomes
-    win: 1
+    win: 5
     lose: -1
     coins: 0.1
-    kill: 0
-    lose_life: 0
+    kill: 1
+    lose_life: -1
     deck_knowledge: 0
     play_continues: 0

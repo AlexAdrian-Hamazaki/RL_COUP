@@ -279,7 +279,9 @@ class MultiAgentTrainer:
     
             ######## SEE CONSEQUENCE OF STEP ##########
             next_observation, _, termination, _, info = self.env.last() # reads the observation of the last state from current agent's POV
-            reward = self.env.rewards.get(i_agent, 0) # get the reward of the agent that just ACTED (self.env.last steps iter)        
+            reward = self.env.rewards.get(i_agent, 0) # get the reward of the agent that just ACTED (self.env.last steps iter)    
+            print(f"Observed reward in multistep {reward}")
+                
             next_state = next_observation['observation']
 
             

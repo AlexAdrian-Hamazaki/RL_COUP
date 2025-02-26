@@ -141,10 +141,9 @@ class Turn:
         else:
             action_instance = self.game.action_map.get(self.current_base_action_str)()
             
-        # ensure sufficient coins        
-        if not action_instance.check_coins(self.current_base_player.coins):
-            #print("\t\tInsufficient coins")
-            raise ValueError("Insufficient Coins")
+        if self.current_base_action_str == "assassinate":      
+            action_instance.claim(self.current_base_player, self.game)
+        
         
         # update turn to store claimed action instance
         self.current_base_action_instance = action_instance
@@ -156,8 +155,8 @@ class Turn:
             self.current_base_player.add_claimed_card(action_instance.card)
 
         # Update game to update every player's knowledge of what every player is claiming
-        # self.game.update_knowledge() # TEST THIS TODO
-        # print(self.game.claimed_cards)
+        
+        self.game.update_knowledge() # TEST THIS TODO
 
     
     def exe_base_action(self) -> None:

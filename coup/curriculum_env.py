@@ -43,12 +43,15 @@ class CurriculumEnv(CoupEnv):
             reward+=lose
         
         # check if agent got coins. Get coins value reward for each coin you get
-        if self._agent_gained_coins(agent, prev_state)>0:
+        if self._agent_gained_coins(agent, prev_state)!=0:
             reward+=coins*self._agent_gained_coins(agent,prev_state)
+
         
         # check if agent killed someone
         if self._agent_killed(agent, prev_state):
             reward+=kill
+            print(f"Reward for killing {reward}")
+            
             
         # check if agent lost life
         if self._agent_lost_life(agent, prev_state):

@@ -179,6 +179,7 @@ def test_claim_action3(load_actions):
     
     
     
+    
 def test_prev_and_next_same(load_actions):
     # check that the next_state is the same as the next line's state
     grouped = load_actions.groupby('game_id')
@@ -273,11 +274,80 @@ def test_steal_actions(load_actions, lesson):
         assert target_next_state_money <= target_state_money # checks To make sure money downticks for target
         
         
+def test_assassinate_actions(load_actions, lesson):
+    pd.set_option('display.max_columns', 10)
+    actions = load_actions[load_actions.loc[:,'ORIGONAL_next_action_type']=="exe_action"]
+    actions = actions[actions.loc[:,'ORIGONAL_current_claimed_action'].str.contains(r'^assassinate_\d$')]
+    actions['target'] = actions['ORIGONAL_current_claimed_action'].str.split("_").str[-1]
+    
+    actions = actions.loc[:,['action', 'target',"ORIGONAL_current_claimed_action",'ORIGONAL_current_base_player', "reward", "ORIGONAL_money", "STEPPED_money", "ORIGONAL_n_cards", "STEPPED_n_cards"]]
+    print(actions.head())
+    expected_reward = round(float(lesson['rewards']['kill']), 2)
+    print(f"expected reward {expected_reward}")
+    
+    for i, row in actions.iterrows():
+        current_base_player = str(row['ORIGONAL_current_base_player'])
+        player_state_money = row['ORIGONAL_money'][current_base_player]
+        player_next_state_money = row['STEPPED_money'][current_base_player]
+    
+        current_target_player = str(row['target'])
+        origonal_target_lives = row['ORIGONAL_n_cards'][current_target_player]
+        stepped_target_lives = row['STEPPED_n_cards'][current_target_player]
         
+        assert current_base_player != current_target_player # make sure player is not stealing from self
         
+        assert origonal_target_lives-1 == stepped_target_lives # make sure target player lost a life
+        print(f"seen reward {round(float(row['reward']),2)}")
+        assert round(float(row['reward']), 2) == round(float(lesson['rewards']['kill']), 2) or round(float(lesson['rewards']['kill']), 2) + round(float(lesson['rewards']['win']), 2), "Check to make sure the correct reward is received"
+
+def test_claim_assassinate(load_actions, lesson):
+    # test that you lose 3 money and reward when you claim assassinate
+    actions = load_actions[load_actions.loc[:,'ORIGONAL_next_action_type'] == "claim_base_action"]
+    actions = actions[actions.loc[:,'action'].str.contains(r'^assassinate_\d$')]
+    actions['target'] = actions['action'].str.split("_").str[-1]
+
+    actions = actions.loc[:,['action', 'target','ORIGONAL_next_action_type','ORIGONAL_current_base_player', "reward", "ORIGONAL_money", "STEPPED_money", "ORIGONAL_n_cards", "STEPPED_n_cards"]]
+
+    print(actions)
+    for i, row in actions.iterrows():
+        current_base_player = str(row['ORIGONAL_current_base_player'])
+        # Use current_base_player to index the corresponding rows
+        state_money = row.loc['ORIGONAL_money'][current_base_player]
+        next_state_money = row.loc['STEPPED_money'][current_base_player]
+        assert state_money- 3 == next_state_money
+        assert (round(float(row['reward']),2) == -round(float(lesson['rewards']['coins']*3),2))
+
+def test_coup_actions(load_actions, lesson):
+    pd.set_option('display.max_columns', 10)
+    actions = load_actions[load_actions.loc[:,'ORIGONAL_next_action_type']=="exe_action"]
+    actions = actions[actions.loc[:,'ORIGONAL_current_claimed_action'].str.contains(r'^coup_\d$')]
+    actions['target'] = actions['ORIGONAL_current_claimed_action'].str.split("_").str[-1]
+    
+    actions = actions.loc[:,['action', 'target',"ORIGONAL_current_claimed_action",'ORIGONAL_current_base_player', "reward", "ORIGONAL_money", "STEPPED_money", "ORIGONAL_n_cards", "STEPPED_n_cards"]]
+    print(actions.head())
+    expected_reward = round(float(lesson['rewards']['kill']), 2)
+    print(f"expected reward {expected_reward}")
+    
+    for i, row in actions.iterrows():
+        current_base_player = str(row['ORIGONAL_current_base_player'])
+        player_state_money = row['ORIGONAL_money'][current_base_player]
+        player_next_state_money = row['STEPPED_money'][current_base_player]
+    
+        current_target_player = str(row['target'])
+        origonal_target_lives = row['ORIGONAL_n_cards'][current_target_player]
+        stepped_target_lives = row['STEPPED_n_cards'][current_target_player]
         
+        assert current_base_player != current_target_player # make sure player is not couping self
+        assert player_next_state_money == player_state_money-7 # checks To make sure money downticks
+        
+        assert origonal_target_lives-1 == stepped_target_lives # make sure target player lost a life
+        print(f"seen reward {round(float(row['reward']),2)}")
+        assert round(float(row['reward']), 2) == round(float(lesson['rewards']['kill']), 2) or round(float(lesson['rewards']['kill']), 2) + round(float(lesson['rewards']['win']), 2), "Check to make sure the correct reward is received"
 
 
+        
+        
+        
 def test_cumulative_rewards(load_actions, lesson):
     # check that cumulative reward tracking
     assert True

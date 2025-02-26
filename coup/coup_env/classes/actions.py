@@ -121,12 +121,13 @@ class Coup(ActionsWTarget):
 
     def __init__(self, target_player: int, name='coup'):
         super().__init__(target_player=target_player, name=name) 
-        
+        self.cost = 7
     def __repr__(self):
         return self.name
 
     def do(self, player, game):
         #print(f"Player {player.name} performs a coup!")
+    
         player = player
         target_player = self.target_player
         if target_player is None:
@@ -156,13 +157,16 @@ class Assassinate(ActionsWTarget):
     card = "assassin"
     def __init__(self, target_player: int, name='assassinate'):
         super().__init__(target_player=target_player, name=name) 
-
+        self.cost = 3
+        
+    def claim(self, player, game):
+        assert self.check_coins(player.coins)
+        player.discard_coins(game, 3)    
+            
+        
     def do(self, player, game):
-        #print("\t\tAssassination action performed!")
-
         player = player
         target = self.target_player
-        player.discard_coins(game, 3)        
         target.lose_life(game)
 
 class Steal(ActionsWTarget):
