@@ -25,7 +25,7 @@ class Game:
         
         self._win = False # true if agent won
         self._lost = False # True if agent is dead
-        
+        np.random.seed(None)
         # setup game
         self._setup_deal()    
         self._setup_give_coins()
@@ -44,7 +44,7 @@ class Game:
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
         self.update_knowledge()
-        #print(f"""Initialized game with {len(self.players)} players""")
+
             
     def __repr__(self):
         result = f"""
@@ -174,11 +174,11 @@ Current Coins in Bank = {self._bank}
                 return player
         raise ValueError(f"Player name {player_name} not found")
     
-    def next_turn(self):
-        self.turn.next_turn(self)
-        if self.n_players==1:
-            #print(f"Player {self.players} wins")
-            self.on=False
+    # def next_turn(self):
+    #     self.turn.next_turn(self)
+    #     if self.n_players==1:
+    #         #print(f"Player {self.players} wins")
+    #         self.on=False
             
     def assess_game_win(self):
         """
@@ -215,6 +215,7 @@ Current Coins in Bank = {self._bank}
             
     def update_all_players_claimed_cards(self):
         self.claimed_cards = {player.name :player.claimed_cards for player in self.players}
+        # print(self.claimed_cards)
                 
     def update_all_players_n_coins(self):
         self.n_coins = {player.name: player.coins for player in self.players}
@@ -240,13 +241,13 @@ Current Coins in Bank = {self._bank}
         
         self.turn.update_after_death(i_dead)
         
-    def step(self, action, action_map):
-        """
-        Leverage the turn class to            
-        make a step to the next game state
-        """
-        self.turn.step(action, action_map, self)
-        self.assess_game_win()
+    # def step(self, action, action_map, agent):
+    #     """
+    #     Leverage the turn class to            
+    #     make a step to the next game state
+    #     """
+    #     self.turn.step(action, action_map, self)
+    #     self.assess_game_win()
         
     
 

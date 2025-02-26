@@ -1,24 +1,25 @@
 ---
 # Coup Lesson 1
-# Train against random agent: 'random', weak opponent: 'weak', strong opponent: 'strong', or use self-play: 'self'
-opponent: random
+lesson_name: "2048_lesson1"
+opponent:  # Train against random agent: 'random', weak opponent: 'weak', strong opponent: 'strong', or use self-play: 'self'
 opponent_pool_size:       # Size of opponent pool for self-play
-opponent_upgrade:       # Epoch frequency to update opponent pool
+evo_opp_epochs:       # Epoch frequency to update opponent pool
 eval_opponent:       # 'random', 'weak' or 'strong'
 pretrained_path:       # Path to pretrained model weights
-save_path: models/DQN/lesson1_trained_agent.pt  # Path to save trained model
-max_train_episodes: 0  # Maximum number of training episodes in environment
-max_steps: 100  # Max turns in a game
-max_episodes: 100  # Number of games to play
-episodes_per_epoch: 5  # Number of games before updating Q network
-evo_epochs: 20  # Frequency of HPO evaluation and mutation
-evo_loop: 50  # Number of evaluation episodes for hyperparameter selection
-epsilon: 1.0  # Starting epsilon value
+save_path: models/DQN/lesson1_2048_trained_agent.pt  # Path to save trained model
+max_train_episodes:  # Maximum number of training episodes in environment
+max_steps:  # Max turns in a game
+max_episodes:  # Number of games to play
+episodes_per_epoch:  # Number of games before updating Q network
+evo_epochs:  # Frequency of HPO evaluation and mutation
+n_evaluations: # Number of evaluation episodes for hyperparameter selection
+epsilon: 1  # Starting epsilon value
 eps_end: 0.1  # Final epsilon value
-eps_decay: 0.9998  # Epsilon decay rate
+eps_decay: 0.9999  # Epsilon decay rate
 opp_update_counter: 0  # Counter for opponent updates
 env_name: 'COUP_v0.1'  # Environment name
 algo: "DQN"  # Algorithm
+epochs: 
 
 
 
@@ -27,12 +28,12 @@ algo: "DQN"  # Algorithm
 n_players: 2
 buffer_warm_up: true  # Fill replay buffer with random experiences
 warm_up_opponent: random  # Difficulty level of warm up experiences
-agent_warm_up: 100  # Number of epochs to warm up agent by training on random experiences
+agent_warm_up: 1  # Number of epochs to warm up agent by training on random experiences
 rewards:  # Rewards for different outcomes
     win: 1
     lose: -1
-    coins: 0.5
-    kill: 0.5
-    lose_life: -0.5
+    coins: 0.1
+    kill: 0
+    lose_life: 0
     deck_knowledge: 0
     play_continues: 0

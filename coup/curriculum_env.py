@@ -53,6 +53,5 @@ class CurriculumEnv(CoupEnv):
         # check if agent lost life
         if self._agent_lost_life(agent, prev_state):
             reward+=lose_life
-        
-        return reward
+        return round(float(reward),2)
 

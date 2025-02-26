@@ -58,6 +58,14 @@ class CoupEnv(AECEnv):
         # Generate all possible combinations of 2 integers (with repetition allowed)
         card_combinations = list(combinations_with_replacement(self._card_names_ints[:], r=2))
         self._card_combination_map = {index: combo for index, combo in enumerate(card_combinations)}
+        
+        
+        # Possible next_Action
+        self.NEXT_ACTION_TYPE_MAP = {"exe_action":0,
+                                     "claim_base_action":1,
+                                     "pass_action":2,
+                                     "challenge_action":3,
+                                     "block_action":4}
             
         ############################################################################
         ###### Action spaces for each agent ##############################
@@ -74,6 +82,7 @@ class CoupEnv(AECEnv):
         self._base_actions.remove("block_steal_cap")
         
         self._exe = ['exe']
+        self._no_action = ['none']
         self._steal_actions = [f"steal_{agent}" for agent in self.agents]
         self._base_actions = self._base_actions + self._steal_actions
         
@@ -82,7 +91,7 @@ class CoupEnv(AECEnv):
         self._challenge_action = ["challenge"] 
         self._pass_action = ['pass']
         
-        self._actions = self._base_actions + self._assassinate_actions + self._coup_actions + self._challenge_action + self._pass_action + self._exe
+        self._actions = self._base_actions + self._assassinate_actions + self._coup_actions + self._challenge_action + self._pass_action + self._exe + self._no_action
         self._actions.sort()
         self._action_space_map = dict(zip([action for action in self._actions],
                                           [n for n in range(len(self._actions))]
@@ -91,6 +100,9 @@ class CoupEnv(AECEnv):
         self.action_space_dict = Discrete(len(self._actions), start = 0) # first is action, second is target player, -1= No target
         self.action_spaces = dict(zip([agent for agent in self.agents],
                                            [self.action_space_dict for _ in self.agents]))
+        
+        print("Action Map")
+        print(self._action_space_map)
         
         ############################################################################
         ###### Observation spaces for each agent ##############################
@@ -101,7 +113,7 @@ class CoupEnv(AECEnv):
             'observation': 
                 Dict({
                     'agent_cards': Discrete(len(self._card_combination_map.keys())), # pairs of cards here
-                    "agent_deck_knowledge": MultiDiscrete([6] * deck_size, start=[-1]*deck_size), #Order o deck, -1 indicates we do not know what the card is. # TODO figure out how to limit this to only correct observations like (-1,-1,2,4
+                    # "agent_deck_knowledge": MultiDiscrete([6] * deck_size, start=[-1]*deck_size), #Order o deck, -1 indicates we do not know what the card is. # TODO figure out how to limit this to only correct observations like (-1,-1,2,4
                     # # Maybe will need to throw out bad obs?
                     "claims": Dict(dict(zip([n for n in range(self.n_players)], 
                                             [MultiBinary([6]) for _ in range(self.n_players)]))), # Player_int: Text # dict of text spaces for what others are claiming,
@@ -116,7 +128,10 @@ class CoupEnv(AECEnv):
                                             [Discrete(4, start = 0) for _ in range(len(self._card_names_ints[1:]))]))), # Card name, number revealed)
                         
                     "current_base_player": Discrete(len(self.agents), start = 0), 
-                    "current_claimed_card": Discrete(len(self._actions), start = -1), # may not need this
+                    "current_claimed_action": Discrete(len(self._actions), start = 0), # may not need this
+                    'current_acting_player': Discrete(len(self.agents), start = 0),
+                    "next_action_type": Discrete(len(list(self.NEXT_ACTION_TYPE_MAP.keys()))),
+                    
                 }),
             'action_mask':
                 MultiBinary(len(self._actions))
@@ -159,14 +174,26 @@ class CoupEnv(AECEnv):
         revealed = self.game.revealed_cards
         # Create a dictionary where the key is the integer and the value is its count
         revealed  = dict(Counter(revealed))
+        # Ensure all keys are strings and all values are integers
+        revealed = {str(k): int(v) for k, v in revealed.items()}
         turn_order = self.game.turn.turn_order
         current_base_player= self.game.turn.current_base_player.name
         current_claimed_card = self.game.turn.current_base_action_instance.card
         
-        money = self.game.n_coins
-        n_cards = self.game.n_cards
-        claims = self.game.claimed_cards
+        if self.game.turn.current_base_action_instance.has_target:
+
+            current_claimed_action = f"{self.game.turn.current_base_action_instance.name}_{self.game.turn.current_base_action_instance.target_player.name}"
+        else:
+            current_claimed_action = self.game.turn.current_base_action_instance.name
         
+        money = self.game.n_coins
+        money = {int(k): int(v) for k, v in money.items()}
+
+        n_cards = self.game.n_cards
+        n_cards = {int(k): int(v) for k, v in n_cards.items()}
+        
+        claims = self.game.claimed_cards
+        claims = {int(k): set(str(i) for i in v) for k,v in claims.items()}
 
         ###############################################################################
         ######################## OBSERVATION #######################################################
@@ -174,26 +201,32 @@ class CoupEnv(AECEnv):
         
     
         observation = {
-            "agent_cards": card_combo ,
-            "agent_deck_knowledge": np.array(agent_deck_knowledge),
+            "agent_cards": int(card_combo) ,
+            # "agent_deck_knowledge": np.array(agent_deck_knowledge),
             "claims": claims,
             "n_cards": n_cards,
             "money": money,
             "revealed": revealed,
-            "current_base_player": current_base_player,
-            "current_claimed_card":current_claimed_card,
+            "current_base_player": int(current_base_player),
+            "current_claimed_action": str(current_claimed_action),
+            'next_action_type': str(self.game.turn.next_action_type),
+            'current_acting_player': int(self.agent_selection)
     
             }
         # Convert everything to the integers the space is expecting
         observation['agent_cards'] = observation['agent_cards'] 
-        observation['agent_deck_knowledge'] = [self._card_name_map[card.lower()] for card in observation['agent_deck_knowledge']]
+        # observation['agent_deck_knowledge'] = [self._card_name_map[card.lower()] for card in observation['agent_deck_knowledge']]
+        
+        # print(observation['claims'][0])
+        
         observation['claims'] = {agent: self._convert_claims_to_multibinary(observation['claims'][agent]) for agent in list(observation['claims'].keys())}
         observation['n_cards'] = observation['n_cards']
         observation['money'] = observation['money']
         observation['revealed'] = {self._card_name_map.get(key): value for key, value in observation['revealed'].items()}        
         observation['current_base_player'] = observation['current_base_player']
-        observation['current_claimed_card'] = self._card_name_map.get(observation['current_claimed_card'], -1)
-        
+        observation['current_claimed_action'] = self._action_space_map.get(observation['current_claimed_action'], -1)
+        observation['next_action_type'] = self.NEXT_ACTION_TYPE_MAP[self.game.turn.next_action_type]
+        observation['current_acting_player'] =  self.agent_selection
         ##############################################################################################################
         ########## Action Mask #######################################################
         ##############################################################################################################
@@ -268,26 +301,34 @@ class CoupEnv(AECEnv):
     
         if next_action_type == 'claim_base_action':
             if agent_money>10:
-                lo_valid_actions = self._assassinate_actions + self._coup_actions
+                lo_valid_actions = self._assassinate_actions + self._coup_actions # enough money for all actions
+                lo_valid_actions = self._remove_self_target(lo_valid_actions, agent) # remove ability to coup, assassinate, or steal from self
                 lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
                 a_mask[lo_valid_indexes] = 1
                 return a_mask
             
             elif agent_money >=7:
                 lo_valid_actions = self._assassinate_actions + self._coup_actions + self._base_actions
+                lo_valid_actions = self._remove_self_target(lo_valid_actions, agent) # remove ability to coup, assassinate, or steal from self
+
                 lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
                 a_mask[lo_valid_indexes] = 1
                 return a_mask
 
             elif agent_money >=3:
                 lo_valid_actions = self._assassinate_actions + self._base_actions
+                lo_valid_actions = self._remove_self_target(lo_valid_actions, agent) # remove ability to coup, assassinate, or steal from self
                 lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
                 a_mask[lo_valid_indexes] = 1
                 return a_mask
             
             else:
                 lo_valid_actions = self._base_actions
+                lo_valid_actions = self._remove_self_target(lo_valid_actions, agent) # remove ability to coup, assassinate, or steal from self
                 lo_valid_indexes = [self._action_space_map[action] for action in lo_valid_actions]
+                
+                
+                
                 a_mask[lo_valid_indexes] = 1
                 return a_mask
     
@@ -342,6 +383,11 @@ class CoupEnv(AECEnv):
             
         else:
             raise LookupError(f"Somethingg is not implemented properly. next action = {next_action_type}")
+        
+    def _remove_self_target(self, lo_valid_actions, agentID):
+        lo_valid_actions = [action for action in lo_valid_actions if str(agentID) not in action]
+        return lo_valid_actions
+        
             
     def _is_action_valid(self, action):
         real_action = self._compute_action_mask()[0][action[0]] == 1
@@ -388,8 +434,10 @@ class CoupEnv(AECEnv):
         ############################################################################
         ###### self.game initialiation -- very important ##############################
         ############################################################################
+
         self.game = Game(n_players=self.n_players)
-                
+        
+        
         ############################################################################
         ###### self.agents initialization -- very important ##############################
         ############################################################################
@@ -402,22 +450,23 @@ class CoupEnv(AECEnv):
         self.terminations = {agent: False for agent in self.agents}
         self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.rewards = {agent: 0 for agent in self.agents}
+        
+        #### AGENT SELECTOR ALLOWS FOR STEPPING THROUGH AGENTS
+        self._agent_selector = agent_selector(self.agents)
+        self.agent_selection = self._agent_selector.next()
 
 
         self.truncations = {agent: False for agent in self.agents}
         self.infos = {agent: {"next_action_type":self.game.turn.next_action_type} for agent in self.agents}
         self.state = {agent: self._get_obs(agent) for agent in self.agents}      
-        
-        #### AGENT SELECTOR ALLOWS FOR STEPPING THROUGH AGENTS
-        self._agent_selector = agent_selector(self.agents)
-        self.agent_selection = self._agent_selector.next()
+    
         
         ### action will be reset
         self.action = None
         
         return self.state, self.infos
     
-    def check_game_over(self):
+    def check_game_over(self, prev_state):
         """ 
         Game ends when there is only 1 agent left
         
@@ -430,10 +479,10 @@ class CoupEnv(AECEnv):
             #print(f"~~~~~~~~~~~~~~~~  Agent {self.agents[0]} has won  ~~~~~~~~~~~~~~~~~")
             # update game state
             self.state = {agent: self._get_obs(agent) for agent in self.agents} 
-            # update rewards
-            # self.rewards  = {agent: self._get_reward(agent) for agent in self.agents}
+            # update rewards. This time game_win should be accurate as should game_end
+            self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
             # self._cumulative_rewards[self.agent_selection]= 0
-            # self._accumulate_rewards()
+            self._accumulate_rewards()
             self.infos[self.agent_selection] = {'next_action_type':"win"}
 
             return True
@@ -472,9 +521,11 @@ class CoupEnv(AECEnv):
         prev_state = self.state.copy()
 
 
-        # Its not over
+        # Game continues, select agent and make a turn
         self.action = action
         agent = self.agent_selection
+        
+        # print(f"Found acting agent {agent}")
     
         
         #print(f"Current Agent {agent}")
@@ -489,10 +540,14 @@ class CoupEnv(AECEnv):
         if self.game.turn.next_action_type == "exe_action":
             self.game.turn.exe_base_action() 
             self.game.turn.next_action_type = 'claim_base_action'
+            
+            
         
         # If we are at a base action
         elif self.game.turn.next_action_type == "claim_base_action":
+            
             self.game.turn.claim_base_action(agent, action)
+            
             # SET NEXT ACTION TYPE TO BE CHALLENGE
             self.game.turn.next_action_type = "challenge_action"
             
@@ -502,43 +557,54 @@ class CoupEnv(AECEnv):
             if list(action.values())[0] == 'pass': # non-base player passed
                 pass
             elif list(action.values())[0] == 'challenge': # challenged
-                #print("Executing challenge")
+                # print("Executing challenge")
                 self.game.turn.exe_challenge(agent) # this will lose a live from someone, and set challenge.status to T or F
             
+            # print(f"Now we are in a challenge action, where acting agent is {agent}")
+            # print(f"Agent has taken action {list(action.values())[0]}")
+            
+            # print("Now we go to next agent")
             # If the NEXT agent is the base_player, the next action type becomes exe_action
-            if self._agent_selector.next() == self.game.turn.current_base_player.name:
+            next_index = (self.agent_selection + 1) % len(self.agents)
+            if self.agents[next_index] == self.game.turn.current_base_player.name:
+                # print(f"next agent {self.agents[next_index]}")
+                # print(f"We found that the next agent is the same as the base_acting agent, setting action to exe")
+                
                 self.game.turn.next_action_type = "exe_action" # Everyone else passes once someone has challenged
+                
             else:
                 self.game.turn.next_action_type = "pass_action"  # Else, next action becomes pass because someone's already challenged
                 
-                
-        elif self.game.turn.next_action_type == "block_action":
-            # future implementation TODO
+            
+        # elif self.game.turn.next_action_type == "block_action":
+        #     # future implementation TODO
 
-            # If the NEXT agent is the base_player, the next action type becomes exe_action
-            if self._agent_selector.next() == self.game.turn.current_base_player.name:
-                self.game.turn.next_action_type = "exe_action" # Everyone else passes once someone has challenged
-            pass
+        #     # If the NEXT agent is the base_player, the next action type becomes exe_action
+        #     if self._agent_selector.next() == self.game.turn.current_base_player.name:
+        #         self.game.turn.next_action_type = "exe_action" # Everyone else passes once someone has challenged
+        #     pass
         
-        elif self.game.turn.next_action_type == "pass_action":
-            if self._agent_selector.next()  == self.game.turn.current_base_player.name: # if the current agent is the base acting player
-                self.game.turn.next_action_type = "exe_action" 
-            else:
-                self.game.turn.next_action_type = "pass_action" 
+        # elif self.game.turn.next_action_type == "pass_action":
+        #     if self._agent_selector.next()  == self.game.turn.current_base_player.name: # if the current agent is the base acting player
+        #         self.game.turn.next_action_type = "exe_action" 
+        #     else:
+        #         self.game.turn.next_action_type = "pass_action" 
             
         #print(f"Next action type: {self.game.turn.next_action_type}")
         # update game state
-        self.state = {agent: self._get_obs(agent) for agent in self.agents} 
         # update truncations
         # never update truncations right now -> but if you need to now then do it here
         
-
+        # print(f"Next acting agent should be {self.agent_selection}")
+        # print(f"Next action type should be {self.game.turn.next_action_type}")
+        # print('\n')
+        # Update mask for next agent
         
         ################################################################# 
         ###################### Update Next Agent ########################### 
         ################################################################# 
-        self.agent_selection = self._agent_selector.next()
-        # Update mask for next agent
+        
+        self.state = {agent: self._get_obs(agent) for agent in self.agents} 
         
         next_action_type = self.game.turn.next_action_type
         self.infos[self.agent_selection] = {"next_action_type": next_action_type}
@@ -550,12 +616,6 @@ class CoupEnv(AECEnv):
         # update terminations
         self.terminations = {agent: self._get_termination(agent) for agent in self.agents}
         
-        # Remove Dead Agents
-        [self.remove_dead_agents(agent) for agent in self.agents]
-        
-        # TODO HANDEL DEAD AGENTS AND REWARD GETTING. SOMETHINGS NOT RIGHT HERE
-        
-        
         ######################  ########################################### 
         ###################### Updating rewards ########################### 
         ################################################################# 
@@ -563,19 +623,33 @@ class CoupEnv(AECEnv):
         self._reset_rewards()
         self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
         self._accumulate_rewards() # add rewards for this agent
-        #print(self.rewards)
         
-        ######################  ########################################### 
+
+
+        #print(self.rewards)
+
+        # Remove Dead Agents
+        [self.remove_dead_agents(agent) for agent in self.agents]
+        
+        self.agent_selection = self._agent_selector.next()
+
+        
+        ################################################################# 
         ###################### IS the Game over ########################### 
         ################################################################# 
         
-        if self.check_game_over(): # raise termination flag in infos
+        if self.check_game_over(prev_state): # raise termination flag in infos
+            # print(self.rewards)
+            # print(self._cumulative_rewards)
             return # game is over
         return 
     
     def _get_termination(self, agent):
         player = self.game.players[agent]
-        return player.status == 'dead'
+        if len(player.cards) == 0:
+            return True
+        else:
+            return False
     
     def _was_dead_step(self, agent) -> None:
         """Helper function that performs step() for dead agents.
@@ -606,7 +680,7 @@ class CoupEnv(AECEnv):
         del self.terminations[agent]
         del self.truncations[agent]
         del self.rewards[agent]
-        del self._cumulative_rewards[agent]
+        # del self._cumulative_rewards[agent]
         del self.infos[agent]
         self.agents.remove(agent)
         
@@ -618,7 +692,6 @@ class CoupEnv(AECEnv):
             if (self.terminations[agent] or self.truncations[agent])
         ]
         if _deads_order: # another agent is dead ### THIS WILL NEVER HAPPEN WITH COUP BECAUSE ONLY 1 PERSON CAN DIE AT A TIME
-
             assert False # This is put here rn to see if we ever enter here which i dont think we ever do
             if getattr(self, "_skip_agent_selection", None) is None: # if this is NONE, then we bypass normal agent iter to mak
                 self._skip_agent_selection = self.agent_selection
@@ -663,8 +736,8 @@ class CoupEnv(AECEnv):
         """
         prev_coins = prev_state[agent]['observation']['money'][agent]
         coins = self.state[agent]['observation']['money'][agent]
-    
-        return coins-prev_coins
+        diff_coins =coins-prev_coins
+        return diff_coins
         
     def _agent_killed(self, agent, prev_state) -> bool:
         """Return a bool indicating if current agen't step killed another agent's card
@@ -682,10 +755,11 @@ class CoupEnv(AECEnv):
         prev_agent_cards.pop(agent)
         agent_cards.pop(agent)
         
-        
         for iter_agent in list(prev_agent_cards.keys() & agent_cards.keys()):  # Find common keys
             difference_in_cards = int(agent_cards[iter_agent]) - int(prev_agent_cards[iter_agent])  # Subtract values
-            if difference_in_cards > 0:
+            
+            if difference_in_cards < 0:
+
                 return True
         return False
     
@@ -702,7 +776,7 @@ class CoupEnv(AECEnv):
         agent_cards = self.state[agent]['observation']['n_cards']
         difference_in_cards = agent_cards[agent] - prev_agent_cards[agent]  # Subtract values
         
-        if difference_in_cards >0:
+        if difference_in_cards <0:
             return True
         return False
 
@@ -734,7 +808,6 @@ class CoupEnv(AECEnv):
         
         # check if agent just lost game
         if self._agent_lost(agent):
-            assert False
             reward+=lose
         
         # check if agent got coins. Get coins value reward for each coin you get
@@ -786,10 +859,12 @@ class CoupEnv(AECEnv):
 
         # Populate the binary array based on observation['agent_claims'] (set)
         
+
         for claim in list(observation):
             key = claim.lower()
             if key in key_to_index:  # Check if the key is in either map
                 multi_binary[key_to_index[key]] = 1
+
         return multi_binary
 
 
@@ -803,7 +878,7 @@ class CoupEnv(AECEnv):
         observation = self.observe(agent) if observe else None
         return (
             observation,
-            self._cumulative_rewards[agent],
+            self.rewards[agent],
             self.terminations[agent],
             self.truncations[agent],
             self.infos[agent],

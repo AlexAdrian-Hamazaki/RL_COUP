@@ -17,13 +17,15 @@ class Actions:
     
     ACTIONS_WITH_TARGET = {'coup', 'assassinate', 'steal'}
     
-    card = ''
+    card = None
     
-    def __init__(self, name="pass"):
+    def __init__(self, target_player = None, name="pass"):
         self._name = name    
         self._challengable = self._name in self.CHALLENGABLE_ACTIONS
         self._blockable = self._name in self.BLOCKABLE_ACTIONS  
         self._cost = self.ACTION_COST.get(self._name, 0)
+        self.has_target = None
+        self._target_player = target_player 
     @property
     def name(self):
         return self._name
@@ -63,6 +65,13 @@ class Actions:
     @has_target.setter
     def has_target(self, value):
         self._has_target = value  # Update the _has_target attribute
+        
+    @property
+    def target_player(self):
+        return self._target_player
+    @target_player.setter
+    def target_player(self, target_player):
+        self._target_player = target_player
 
     def do(self, player, game):
         # print("Passing!")
@@ -78,9 +87,9 @@ class Actions:
   
 # Subclasses for each action
 class Income(Actions):
-    card = "income"
+    card = None
     def __init__(self, name='income'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+        super().__init__(name=name)  # Initialize the parent class (Actions)
         
     def do(self, player, game):
         #print(f"\tPlayer {player.name} takes income!")
@@ -90,9 +99,9 @@ class Income(Actions):
 
 
 class Foreign_Aid(Actions):
-    card = "foreign_aid"
+    card = None
     def __init__(self, name='foreign_aid'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+        super().__init__(name=name)  # Initialize the parent class (Actions)
 
     def do(self, player, game):
         #print(f"{player.name} takes foreign aid!")
@@ -102,23 +111,17 @@ class Foreign_Aid(Actions):
 
 
 class ActionsWTarget(Actions):
-    def __init__(self, name='ActionWTarget'):
-        super().__init__(name)
-        self._target_player = None
-        
-    @property
-    def target_player(self):
-        return self._target_player
-    target_player.setter
-    def target_player(self,target_player):
-        self._target_player=target_player
-    
+    def __init__(self, target_player: int, name: str = 'ActionWTarget'):
+        super().__init__(target_player=target_player, name=name) 
+        self.has_target = True
+
 
 class Coup(ActionsWTarget):
-    card = "coup"
+    card = None
 
-    def __init__(self, name='coup'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+    def __init__(self, target_player: int, name='coup'):
+        super().__init__(target_player=target_player, name=name) 
+        
     def __repr__(self):
         return self.name
 
@@ -131,12 +134,16 @@ class Coup(ActionsWTarget):
         player.discard_coins(game, 7)  # Cost of coup
         target_player.lose_life(game)
 
+class NoAction(Actions):
+    card = ""
+    def __init__(self, target_player=None, name="none"):
+        super().__init__(target_player=target_player, name=name)
 
 
 class Tax(Actions):
     card = "duke"
     def __init__(self, name='tax'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+        super().__init__(name=name)  # Initialize the parent class (Actions)
     
     def do(self, player, game):
         #print(f"\t\tPlayer {player.name} collects tax!")
@@ -147,8 +154,8 @@ class Tax(Actions):
 
 class Assassinate(ActionsWTarget):
     card = "assassin"
-    def __init__(self, name='assassinate'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+    def __init__(self, target_player: int, name='assassinate'):
+        super().__init__(target_player=target_player, name=name) 
 
     def do(self, player, game):
         #print("\t\tAssassination action performed!")
@@ -160,22 +167,29 @@ class Assassinate(ActionsWTarget):
 
 class Steal(ActionsWTarget):
     card = "captain"
-    def __init__(self, name='steal'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+    def __init__(self, target_player: int, name: str = 'steal'):
+        super().__init__(target_player=target_player, name=name) 
     
     def do(self, player, game):
         #print("\t\tSteal action performed!")
 
         player = player
         target = self.target_player
-        target.discard_coins(game, 2)
-        player.take_coins(game, 2)
+        
+        if target.coins >=2:
+            target.discard_coins(game, 2)
+            player.take_coins(game, 2)
+        else:
+            coins = target.coins
+            target.discard_coins(game, coins)
+            player.take_coins(game, coins)
+            
 
 
 class Exchange(Actions):
     card = "ambassador"
     def __init__(self, name='exchange'):
-        super().__init__(name)  # Initialize the parent class (Actions)
+        super().__init__(name=name)  # Initialize the parent class (Actions)
         
     def do(self, player, game):
         #print("\t\tExchange action performed!")
@@ -206,9 +220,9 @@ class Exchange(Actions):
 
 
 class BlockAction(Actions):
-    card = ''
+    card = None
     def __init__(self, name="BlockAction"):
-        super().__init__(name)
+        super().__init__(name=name)
         self._blocks = None
         
     def __do(self):
@@ -219,27 +233,27 @@ class BlockAction(Actions):
         return self._blocks
 
 class B_Foreign_Aid(BlockAction):
-    card = 'duke'
+    card = None
     def __init__(self, name="block_foreign_aid"):
-        super().__init__(name)
+        super().__init__(name=name)
         self._blocks = "foreign_aid"
         
 class B_Assassinate(BlockAction):
-    card = "contessa"
+    card = None
     def __init__(self, name="block_assassinate"):
-        super().__init__(name)
+        super().__init__(name=name)
         self._blocks = 'assassinate'
         
 class B_Steal_Ambassador(BlockAction):
-    card = 'ambassador'
+    card = None
     def __init__(self, name="block_steal_amb"):
-        super().__init__(name)
+        super().__init__(name=name)
         self._blocks = 'steal'
         
 class B_Steal_Captain(BlockAction):
-    card = 'captain'
+    card = None
     def __init__(self, name="block_steal_cap"):
-        super().__init__(name)
+        super().__init__(name=name)
         self._blocks = 'steal'
         
 

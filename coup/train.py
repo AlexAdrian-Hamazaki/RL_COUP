@@ -36,6 +36,8 @@ from agilerl.hpo.tournament import TournamentSelection
 from agilerl.utils.algo_utils import obs_channels_to_first
 from agilerl.utils.utils import create_population, observation_space_channels_to_first
 from agilerl.components.replay_buffer import ReplayBuffer
+from agilerl.algorithms.dqn import DQN
+
 
 # Gymnasium Imports
 from gymnasium.spaces.utils import flatten_space, flatdim, flatten
@@ -65,10 +67,10 @@ def init_hyper_conf():
         "ALGO": "DQN",  # Algorithm
         "DOUBLE": True,
         # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        "BATCH_SIZE": 256,  # Batch size
+        "BATCH_SIZE": 10 ,  # Batch size
         "LR": 1e-4,  # Learning rate
         "GAMMA": 0.99,  # Discount factor
-        "MEMORY_SIZE": 1000,  # Max memory buffer size
+        "MEMORY_SIZE": 300,  # Max memory buffer size
         "LEARN_STEP": 1,  # Learning frequency
         "CUDAGRAPHS": False,  # Use CUDA graphs
         "N_STEP": 1,  # Step number to calculate td error
@@ -85,7 +87,7 @@ def init_hyper_conf():
 
 
 def init_hp_config():
-        # Mutation config for RL hyperparameters
+    # Mutation config for RL hyperparameters
     hp_config = HyperparameterConfig(
         lr=RLParameter(min=1e-4, max=1e-2),
         batch_size=RLParameter(min=8, max=64, dtype=int),
@@ -102,10 +104,16 @@ def main():
     ### Initialization section
     ##############################################################################
     
+    seed = int.from_bytes(os.urandom(4), "little")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # If using GPU
+        
     ### INIT DEVICE
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("===== AgileRL Curriculum Learning Demo =====")
-    print(device)
+    print("===== AgileRL COUP TRAINING =====")
+    print(torch.cuda.get_device_name(0))
     
     ### Initiate config dictionary for network parameters
     NET_CONFIG = init_net_conf()
@@ -117,14 +125,13 @@ def main():
     hp_config = init_hp_config()    
     
     ### Load warmup lesson
-    with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
+    with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson1.yaml") as file:
         LESSON = yaml.safe_load(file)
 
-    num_envs = 8
     ### INSTANTIATE ENVIRONMENT
     # for now just with 2 players
     env = CoupEnv(n_players=LESSON['n_players'])
-    env.reset(seed=42)
+    env.reset()
     
         
     ### Configure observation Space for training
@@ -150,19 +157,24 @@ def main():
     ##############################################################################
     ### Create a population of agents for evolutionary hyper-parameter optimization
     ##############################################################################
-    # Create a population ready for evolutionary hyper-parameter optimisation
-    pop = create_population(
-        INIT_HP["ALGO"],
-        observation_space,
-        action_spaces[0],
-        NET_CONFIG,
-        INIT_HP,
-        hp_config,
-        population_size=INIT_HP["POPULATION_SIZE"],
-        device=device,
-    )
-
     
+    if LESSON['pretrained_path']:
+        dqn = DQN.load(LESSON['pretrained_path'], device)
+        pop = [DQN(observation_space, action_space).load_state_dict(dqn.state_dict()) for _ in range(INIT_HP["POPULATION_SIZE"])]
+        print(f"Loaded population of agents from {LESSON['pretrained_path']}")
+    else:
+        # Create a population ready for evolutionary hyper-parameter optimisation
+        pop = create_population(
+            INIT_HP["ALGO"],
+            observation_space,
+            action_spaces[0],
+            NET_CONFIG,
+            INIT_HP,
+            hp_config,
+            population_size=INIT_HP["POPULATION_SIZE"],
+            device=device,
+        )
+        print(observation_space)
     
     ##############################################################################
     ### Create a multi agent replay buffer
@@ -191,7 +203,7 @@ def main():
     # then this class also helps us re-fill the population of agents for the next epoch
     
     # TournamentSelection.select()
-    
+
     
     tournament = TournamentSelection(
         tournament_size=2,  # Tournament selection size
@@ -235,15 +247,25 @@ def main():
     ##############################################################################
     ### Wrap Env in a Curriculum env
     ##############################################################################
-        
     
     env = CurriculumEnv(LESSON)
+    seed = int.from_bytes(os.urandom(4), "little")
+    torch.cuda.manual_seed(seed)  # For multi-GPU setups
     
     ##############################################################################
     ### Training loop
     ##############################################################################
 
+    # ### Load Next Lesson
+    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
+    #     LESSON = yaml.safe_load(file)
     
+    
+    lesson_name = LESSON['lesson_name']
+    os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    os.remove(f"metrics/actions/{lesson_name}_actions.jsonl") if os.path.exists(f"metrics/actions/{lesson_name}_actions.jsonl") else None
+    os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+
     multi_agent_trainer = MultiAgentTrainer(
             env=env,  # Pettingzoo-style environment
             pop=pop,  # Population of agents
@@ -251,6 +273,7 @@ def main():
             memory=memory,  # Replay buffer
             INIT_HP=INIT_HP,  # IINIT_HP dictionary
             net_config=NET_CONFIG,  # Network configuration
+            hp_config = hp_config,
             tournament=tournament,  # Tournament selection object
             mutations=mutations,  # Mutations object
             action_space=action_space,
@@ -260,24 +283,48 @@ def main():
             LESSON=LESSON
     )
     
-    
-    
-    print(f"Instantiated Multi agent trainer class {multi_agent_trainer}")
 
+    print(f"Instantiated Multi agent trainer class {multi_agent_trainer}")
     multi_agent_trainer.train_multi_agent()
     
     
-    assert False
-    for agent in env.agent_iter():
-        observation, reward, termination, truncation, info = env.last()
-        if termination or truncation:
-            action = None
-        else:
-            # this is where you would insert your policy
-            action_mask = info['action_mask']
-            action = env.action_space(agent).sample(action_mask) 
-        env.step(action)
-    env.close()
+    # ### Load Next Lesson
+    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
+    #     LESSON = yaml.safe_load(file)
+        
+    # lesson_name = LESSON['lesson_name']
+    # os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    # os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+
+    # multi_agent_trainer.LESSON = LESSON
+    # multi_agent_trainer.load_lesson(LESSON)
+    # print(f"TRAINING ON LESSON 2")
+    # multi_agent_trainer.train_multi_agent()
+    
+    
+    #     ### Load Next Lesson
+    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson3.yaml") as file:
+    #     LESSON = yaml.safe_load(file)
+        
+    # lesson_name = LESSON['lesson_name']
+    # os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    # os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+    # multi_agent_trainer.LESSON = LESSON
+    # multi_agent_trainer.load_lesson(LESSON)
+    # print(f"TRAINING ON LESSON 3")
+    # multi_agent_trainer.train_multi_agent()
+    
+    #     ### Load Next Lesson
+    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson4.yaml") as file:
+    #     LESSON = yaml.safe_load(file)
+        
+    # lesson_name = LESSON['lesson_name']
+    # os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    # os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+    # multi_agent_trainer.LESSON = LESSON
+    # multi_agent_trainer.load_lesson(LESSON)
+    # print(f"TRAINING ON LESSON 3")
+    # multi_agent_trainer.train_multi_agent()
     
 
 if __name__ == "__main__":

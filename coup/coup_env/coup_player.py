@@ -68,6 +68,7 @@ class CoupPlayer:
                 assert (next_state in obs_space)
             except AssertionError:
                 print(next_state)
+                print(obs_space)
                 assert False
             try:
                 state = flatten(obs_space, state)

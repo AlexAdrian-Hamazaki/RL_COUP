@@ -90,14 +90,13 @@ class Player():
         
     def discard_coins(self, game, n:int):
         try:
-            if self.coins <= n:
+            if self.coins < n:
                 raise ValueError(f"\tNot enough coins to discard {n}")
             else:
-                self.coins-=n
-                # #print(f"\tGave {n} couns to bank")
+                self.coins -= n
                 game.bank.add(n)
         except ValueError as e:
-            return 0 #action failed flag.
+            assert False #action failed flag.
     
     
     def add_claimed_card(self, card):

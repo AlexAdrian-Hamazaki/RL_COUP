@@ -1,32 +1,39 @@
 ---
-
-# Coup lesson  3
+lesson_name: "2048_lesson3"
+# Coup Lesson 3
 # Train against random agent: 'random', weak opponent: 'weak', strong opponent: 'strong', or use self-play: 'self'
-opponent: strong
-opponent_pool_size:       # Size of opponent pool for self-play
-opponent_upgrade:       # Epoch frequency to update opponent pool
-eval_opponent: strong  # 'random', 'weak' or 'strong'
-pretrained_path: models/DQN/lesson2_trained_agent.pt   # Path to pretrained model weights
-save_path: models/DQN/lesson3_trained_agent.pt  # Path to save trained model
-max_train_episodes: 30000 # Maximum number of training episodes in environment
-max_steps: 100  # Max turns in a game
-max_episodes: 100  # Number of games to play
-episodes_per_epoch: 10  # Number of games before updating Q network
-evo_epochs: 20  # Frequency of HPO evaluation and mutation
-evo_loop: 50  # Number of evaluation episodes for hyperparameter selection
-epsilon: 1.0  # Starting epsilon value
-eps_end: 0.1  # Final epsilon value
-eps_decay: 0.9998  # Epsilon decay rate
-opp_update_counter: 0  # Counter for opponent updates
+opponent: self
+opponent_pool_size: 6      # Size of opponent pool for self-play
+evo_opp_epochs: 1000      # Epoch frequency to update opponent pool
+
+eval_opponent: random # 'random', 'weak' or 'strong'
+pretrained_path: models/DQN/lesson2_2048_trained_agent.pt  # Path to pretrained model weights
+save_path: models/DQN/lesson3_2048_trained_agent.pt  # Path to save trained model
+
+# HPO Parameters
+epochs: 10
+episodes_per_epoch: 5  # Number of games before updating Q network (number of episoder per epoch)
+evo_epochs: 499  # Frequency of HPO evaluation and mutation
+n_evaluations: 1000  # Number of evaluation episodes for hyperparameter selection
+max_steps: 100 # Max steps in a game before it just resets
+
+# network parameters
+epsilon: 0.3  # Starting epsilon value
+eps_end: 0.001  # Final epsilon value
+eps_decay: 0.9995  # Epsilon decay rate
+
+# General things
 env_name: 'COUP_v0.1'  # Environment name
 algo: "DQN"  # Algorithm
 
 
-## Game specific:
-## Game specific:
-buffer_warm_up: false  # Fill replay buffer with random experiences
-warm_up_opponent:       # Difficulty level of warm up experiences
+# Warmup buffer stuff
+buffer_warm_up: false  # Fill replay buffer with experiences
+warm_up_opponent: 'random' # Difficulty level of warm up experiences (usually random)
 agent_warm_up: 0  # Number of epochs to warm up agent by training on random experiences
+
+## Game specific:
+n_players: 2
 rewards:  # Rewards for different outcomes
     win: 1
     lose: -1

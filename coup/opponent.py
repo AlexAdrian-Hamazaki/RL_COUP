@@ -1,5 +1,6 @@
 from agilerl.algorithms.dqn import DQN
 
+import numpy as np
 
 class Opponent:
     """Coup opponent to train and/or evaluate against.
@@ -9,28 +10,18 @@ class Opponent:
     :param difficulty: Difficulty level of opponent, 'random', 'weak' or 'strong'
     :type difficulty: str
     """
-    def __init__(self, difficulty, device):
-        self.difficulty = difficulty
+    def __init__(self, dqn_path, device):
+        self.dqn_path= dqn_path
         self.device = device
         
         self.load_model()
         
     def __str__(self):
-        return f"Model difficulty {self.difficulty} from path {self.path}"
+        return f"Model from {self.dqn_path}"
     
         
     def load_model(self):
-        if self.difficulty == "random":
-            self.path = "models/DQN/lesson1_trained_agent.pt"
-            self.model =  DQN.load(self.path, self.device)
-            
-        elif self.difficulty == "weak":
-            self.path = "models/DQN/lesson2_trained_agent.pt"
-            self.model =  DQN.load(self.path, self.device)
-            
-        elif self.difficulty == self.strong_rule_based_opponent:
-            self.path = "models/DQN/lesson3_trained_agent.pt"
-            self.model =  DQN.load(self.path, self.device)
+        self.model =  DQN.load(self.dqn_path, self.device)
             
     def get_action(self, state, action_mask):
         epsilon = 0  # model is not exploring/learning so eps = 0 
@@ -39,4 +30,16 @@ class Opponent:
                                 )[0] 
         return action
     
-    
+import numpy as np
+
+class RandomOpponent:
+    def __init__(self):
+        pass  # No initialization needed for this example
+
+    def get_action(self, state,  eps, action_mask):
+        """Return a random valid action from the action_mask."""
+        valid_actions = np.where(action_mask == 1)[0]  # Get indices where action_mask is 1
+        return [np.random.choice(valid_actions) if valid_actions.size > 0 else None]  # Random valid choice or None if no valid actions
+
+        
+        
