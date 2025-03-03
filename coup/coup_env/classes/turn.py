@@ -133,7 +133,7 @@ class Turn:
         self.current_target = self.game.players[list(action.keys())[0]]
         # get str of current action
         self.current_base_action_str = list(action.values())[0]
-        print(self.current_base_action_str)
+        
     
         # get action instance
         if self.current_base_action_str in self.game.actions.ACTIONS_WITH_TARGET:
@@ -147,7 +147,6 @@ class Turn:
         
         # update turn to store claimed action instance
         self.current_base_action_instance = action_instance
-        print(self.current_base_action_instance)
         
         
         # update this player's claimed actions # TEST THIS TODO
@@ -188,35 +187,36 @@ class Turn:
         return self.turn_order_index, players[self.turn_order_index]
         
     
-    def exe_challenge(self, agent:int) -> None:
+    def exe_challenge(self, challenging_agent:int) -> None:
         """
         Executes a challenge made by the agent
         """
         game = self.game
-        agent = game.players[agent]
+        challenging_agent = game.players[challenging_agent]
         
-
-        challenging_player = agent
-        current_player = self.current_base_player
-        current_action = self.current_base_action_instance
+        challenging_player = challenging_agent
+        current_base_player = self.current_base_player
+        current_base_action = self.current_base_action_instance
         
     
         #### CHALLENGE BLOCK game, current_action, current_player: "Player", challenging_player:"Player")
         self.challenge = Challenge(game=game, 
-                              current_action = current_action,
-                              current_player = current_player,
-                              challenging_player = challenging_player)
+                              current_base_action = current_base_action,
+                              current_base_player = current_base_player)
         
-        self.challenge.duel(challenging_player) 
+        self.challenge.execute_challenge() # figure out if challenge is successful or not
         
-        if self.challenge.status == True: # challenge succeeded
-            current_player.lose_life(game) # current player loses life
-            # turn the current base action into a PASS action because it just got challenged and is no longer valid
-            
-        elif self.challenge.status == False: # challenge failed
+        assert current_base_player != challenging_player, "Player cannot challenge themselves"
+        
+        
+        
+        if self.challenge.status == False: # challenge failed, meaning the challenging player should lose a life
             # challenging player loses life
             challenging_player.lose_life(game)
-            # action goes through. it will go through at the .exe action
+        elif self.challenge.status == True: # challenge succeeded, meaning the current base player should lose a life
+            current_base_player.lose_life(game) # current player loses life
+
+
         self.game.update_knowledge()
         return 
         

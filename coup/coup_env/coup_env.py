@@ -455,7 +455,6 @@ class CoupEnv(AECEnv):
         self._agent_selector = agent_selector(self.agents)
         self.agent_selection = self._agent_selector.next()
 
-
         self.truncations = {agent: False for agent in self.agents}
         self.infos = {agent: {"next_action_type":self.game.turn.next_action_type} for agent in self.agents}
         self.state = {agent: self._get_obs(agent) for agent in self.agents}      
@@ -478,13 +477,11 @@ class CoupEnv(AECEnv):
             #print("~~~~~~~~~~~~~~~~  Game over  ~~~~~~~~~~~~~~~~~")
             #print(f"~~~~~~~~~~~~~~~~  Agent {self.agents[0]} has won  ~~~~~~~~~~~~~~~~~")
             # update game state
-            self.state = {agent: self._get_obs(agent) for agent in self.agents} 
-            # update rewards. This time game_win should be accurate as should game_end
-            self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
-            # self._cumulative_rewards[self.agent_selection]= 0
-            self._accumulate_rewards()
-            self.infos[self.agent_selection] = {'next_action_type':"win"}
-
+            # self.state = {agent: self._get_obs(agent) for agent in self.agents} 
+            # # update rewards. This time game_win should be accurate as should game_end
+            # self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
+            # # self._cumulative_rewards[self.agent_selection]= 0
+            # self._accumulate_rewards()
             return True
             
             
@@ -525,11 +522,10 @@ class CoupEnv(AECEnv):
         self.action = action
         agent = self.agent_selection
         
-        # print(f"Found acting agent {agent}")
+        
     
         
-        #print(f"Current Agent {agent}")
-        #print(f"Current action type {self.game.turn.next_action_type}")
+        
         ################################################################# 
         ###################### STEP BLOCK ########################### 
         ################################################################# 
@@ -558,12 +554,8 @@ class CoupEnv(AECEnv):
                 pass
             elif list(action.values())[0] == 'challenge': # challenged
                 # print("Executing challenge")
-                self.game.turn.exe_challenge(agent) # this will lose a live from someone, and set challenge.status to T or F
+                self.game.turn.exe_challenge(challenging_agent = agent) # this will lose a live from someone, and set challenge.status to T or F
             
-            # print(f"Now we are in a challenge action, where acting agent is {agent}")
-            # print(f"Agent has taken action {list(action.values())[0]}")
-            
-            # print("Now we go to next agent")
             # If the NEXT agent is the base_player, the next action type becomes exe_action
             next_index = (self.agent_selection + 1) % len(self.agents)
             if self.agents[next_index] == self.game.turn.current_base_player.name:
@@ -615,7 +607,6 @@ class CoupEnv(AECEnv):
         
         # update terminations
         self.terminations = {agent: self._get_termination(agent) for agent in self.agents}
-        
         ######################  ########################################### 
         ###################### Updating rewards ########################### 
         ################################################################# 
@@ -625,23 +616,23 @@ class CoupEnv(AECEnv):
         self._accumulate_rewards() # add rewards for this agent
         
 
-
-        #print(self.rewards)
-
         # Remove Dead Agents
-        [self.remove_dead_agents(agent) for agent in self.agents]
+        # [self.remove_dead_agents(agent) for agent in self.agents]
         
         self.agent_selection = self._agent_selector.next()
-
         
+        self.state = {agent: self._get_obs(agent) for agent in self.agents} 
+
+        [self.remove_dead_agents(agent) for agent in self.agents]
+
+
         ################################################################# 
         ###################### IS the Game over ########################### 
         ################################################################# 
         
-        if self.check_game_over(prev_state): # raise termination flag in infos
-            # print(self.rewards)
-            # print(self._cumulative_rewards)
-            return # game is over
+        if self.check_game_over(prev_state): 
+            self.infos[self.agent_selection] = {'next_action_type':"win"}
+    
         return 
     
     def _get_termination(self, agent):
@@ -677,11 +668,11 @@ class CoupEnv(AECEnv):
         assert (
             self.terminations[agent] or self.truncations[agent]
         ), "an agent that was not dead as attempted to be removed"
-        del self.terminations[agent]
-        del self.truncations[agent]
-        del self.rewards[agent]
+        # del self.terminations[agent]
+        # del self.truncations[agent]
+        # del self.rewards[agent]
         # del self._cumulative_rewards[agent]
-        del self.infos[agent]
+        # del self.infos[agent]
         self.agents.remove(agent)
         
                 
@@ -885,13 +876,10 @@ class CoupEnv(AECEnv):
         )
         
     def remove_dead_agents(self, agent):
-        if (self.terminations[agent] or self.truncations[agent]): # for when you died not on your turn
-            # print(f'Current agent is dead, {self.agent_selection}, skipping action')
-        
-            self._was_dead_step(agent)
+        if (self.terminations[agent] or self.truncations[agent]): # for when you died not on your turn        
+            self._was_dead_step(agent) # remove dead agent from agent_selector. and steps to next live agent
             
-            # Handle the case where the agent dies mid round or something. I'm pretty sure I need to set the next action type to be a base action
-            self.infos[agent] = {"next_action_type":self.game.turn.next_action_type}
+            
         
     def last_all(self):
         

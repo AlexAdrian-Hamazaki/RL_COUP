@@ -1,114 +1,60 @@
-
 class Challenge:
-    def __init__(self, game, current_action, current_player: "Player", challenging_player:"Player"):
+    def __init__(self, game, current_base_action, current_base_player: "Player"):
         self._game = game
-        self._current_action = current_action
-        self._current_player = current_player
-        self._challenging_player = challenging_player
-        self._status = None #None if no challenge is done, 0 if challenge fails, 1 if succeeds
+        self._current_base_action = current_base_action
+        self._current_base_player = current_base_player
+        self._status = None # None if no challenge is done, False if challenge fails, True if succeeds
         
     @property
     def game(self):
         return self._game
         
     @property
-    def current_action(self):
-        return self._current_action
+    def current_base_action(self):
+        return self._current_base_action
+    
     @property
-    def current_player(self):
-        return self._current_player
-    @property
-    def challenging_player(self):
-        return self._challenging_player
-    @challenging_player.setter
-    def challenging_player(self, challenging_player):
-        self._challenging_player = challenging_player
+    def current_base_player(self):
+        return self._current_base_player
     
     @property
     def status(self):
         return self._status
+    
     @status.setter
     def status(self, status):
         self._status = status
     
-    def can_rev_cc(self)-> bool:
+    def execute_challenge(self) -> bool:
         """
         can player reveal their claimed card?
-        returns true if the player has the card for the action they claim they do
-        otherwise false
+        returns true if the player DOES NOT have the card for the action they claim they do -> meaning the challenge was a success
+        otherwise return false indicating that the challenge was NOT a success
         """
-        player_cards = self.current_player.cards
-        action = self.current_action
+        player_cards = self.current_base_player.cards
+        action = self.current_base_action
         
-        if any(action.name in c.REAL_ACTIONS for c in player_cards):
-            return True
+
+        lo_dooable_actions = [action for card in player_cards for action in card.REAL_ACTIONS]
+        # if this is true, the player HAS the card they claim, meaning the challenge FAILS
+        player_has_card = action.name in lo_dooable_actions 
+        if player_has_card: # if player has card, challenge fails
+            self.status = False # challenge fails, player has card, Challenging player must lose card
         else:
-            return False
-        
-    def challenge_fails(self):
-        self.status = False
-        #print("Challenge Failed")
-        # # Actions for player whoo was challenged 
-        # current_player = self.current_player
-        # game = self.game
-        # current_action = self.current_action
-        # success = False
-        # for card in current_player.cards:
-        #     if current_action.name.lower() in card.REAL_ACTIONS: # if the action is allowed by the cards the current player has
-        #         current_player.put_card_on_bottom(card, game)
-        #         current_player.remove_claimed_card(current_action)
-        #         game.deck.shuffle()
-        #         current_player.draw_card(game)
-        #         success = True # the challenge 
-        #         break
-        # if not success:
-        #     raise ValueError("Error: unable to reveal card but player should have it in hand")    
-        
-        # #### Actions done by player whose challenge failed
-        # self.challenging_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well    
-        
-    def challenge_succeeds(self):
-        #print("Challenge Succeeds")
-        self.status = True
-        # # if challenge succeds, active player needs to reveal a card of their choice
-        # self.current_player.lose_life(self.game) # reveals this card, which handels it going in the dead pile as well
+            self.status = True  # challenge succeeds, player has card, Challenged player must lose card
 
 
     def is_action_challengable(self):
-        return self.current_action.challengable 
+        return self.current_base_action.challengable 
     
-    def duel(self, challenging_player):
-        self.challenging_player = challenging_player
-        self.execute_challenge() # cards are checked to see if contest is successfull
-    
-    # def challenge_round(self):
-    #     other_players = self.get_other_players()
-    #     for other_player in other_players:
-    #         if other_player.check_challenge(self): # compares player knowledge to game state and asks if they want to challenge most recent action
-    #             self.duel(other_player)
-    #             break
-            
+
     def get_other_players(self):
         players = self.game.players
-        current_player = self.current_player
+        current_base_player = self.current_base_player
         lo_names = [player.name for player in players]
         
-        player_int = lo_names.index(current_player.name)
+        player_int = lo_names.index(current_base_player.name)
     
         other_players = players[player_int+1:] + players[:player_int]
 
         return other_players
-    
-    def execute_challenge(self):
-        #other player contests the action of current player (in self.current_player)
-        #first the current player reveals if they have the card required to do the action
-        if self.can_rev_cc(): # if they have the card they claim this will be true
-            self.status = False
-            #print("Challenge Failed")
-            
-        else: # the current player does not have the card they claim to have the power for
-            #print("Challenge Succeeds")
-            self.status = True
-            
-
-            

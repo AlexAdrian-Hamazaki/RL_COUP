@@ -2,6 +2,7 @@
 
 # Importing Coup Env
 from coup_env.coup_env import CoupEnv
+from coup_env.classes.actions import Actions
 from coup_env.coup_player import CoupPlayer
 from opponent import Opponent, RandomOpponent
 
@@ -70,6 +71,11 @@ def get_maps():
     CARD_COMBINATION_MAP = coup_env._card_combination_map
     
     return ACTION_SPACE_MAP, CARD_NAME_MAP, NEXT_ACTION_TYPE_MAP, CARD_COMBINATION_MAP
+
+@pytest.fixture
+def CARD_ACTION_MAP():
+    ACTIONS = Actions()
+    return ACTIONS.CARDS_ACTIONS_MAP
 
 @pytest.fixture
 def path_to_actions():
@@ -343,20 +349,139 @@ def test_coup_actions(load_actions, lesson):
         assert origonal_target_lives-1 == stepped_target_lives # make sure target player lost a life
         print(f"seen reward {round(float(row['reward']),2)}")
         assert round(float(row['reward']), 2) == round(float(lesson['rewards']['kill']), 2) or round(float(lesson['rewards']['kill']), 2) + round(float(lesson['rewards']['win']), 2), "Check to make sure the correct reward is received"
-
-
-        
-        
         
 def test_cumulative_rewards(load_actions, lesson):
-    # check that cumulative reward tracking
-    assert True
+    # check that cumulative reward tracking works as intended
+    actions = load_actions.loc[:,['game_id','reward','cum_reward']]
+    
+    # Check to see that if a reward is there, it gets added to the cumulative reward
+    print(actions.head(10))
+
+    assert True # TODO. Currently this is not possible to teste because an agent can get rewearded based on the opponent's actions
+    # may need to do a bit of research into how to handle this. Or maybe it should be fine.
+    
+    
+def test_acting_player_order(load_actions): # TODO
+    # make sure acting_player is being tracked is working as intended
+    actions = load_actions.loc[:,['game_id','ORIGONAL_next_action_type', 'STEPPED_next_action_type', 'ORIGONAL_current_base_player', 'STEPPED_current_base_player', 'ORIGONAL_current_acting_player', "STEPPED_current_acting_player"]]
+    n_players = len(load_actions['ORIGONAL_current_base_player'].unique())
+    
+    for game_id, game_df in actions.groupby('game_id'):
+        for turn, row in game_df.iloc[:-1].iterrows():  # Exclude the last row
+            if row['ORIGONAL_current_base_player'] == row['ORIGONAL_current_acting_player']: # if acting player is same as base player
+                print(game_df.head())
+                print(turn)
+                assert row['ORIGONAL_current_acting_player'] != row['STEPPED_current_acting_player']
+            else:
+                assert row['ORIGONAL_current_acting_player'] != row['STEPPED_current_acting_player']
+                
+                
+# def test_terminate_signal(load_actions):
+    # make sure there are some situations where the ORIGONAL_terminated signal is False
+    
+    # actions = load_actions.loc[:, ['game_id', 'termination', 'ORIGONAL_current_acting_player']]
+    # assert (actions.termination == True).any()
+    
+    # n_players = len(load_actions['ORIGONAL_current_base_player'].unique())
+
+    # for game_id, game_df in actions.groupby('game_id'):
+    #     print(game_df.termination.unique())
+    #     print(game_df)
+
+    #     num_terminations = game_df['termination'].sum()
+    #     assert num_terminations == n_players - 1, f"Game {game_id} has {num_terminations} terminations, expected {n_players - 1}"
+        
+def test_next_action_type(load_actions):
+    # Test first action is claim action
+    actions = load_actions.groupby('game_id').first()
+    assert (actions['ORIGONAL_next_action_type'] == 'claim_base_action').all(), "First action is not claim_base_action"
+
+    # Test that after claim action, it goes to challenge action
+    actions = load_actions[load_actions['ORIGONAL_next_action_type'] == 'claim_base_action']
+    assert (actions['STEPPED_next_action_type'] == 'challenge_action').all(), "Next action after claim_base_action is not challenge_action"
+    
+    for game_id, game_df in load_actions.groupby('game_id'):
+        # Filter by situations where the ORIGONAL_current_base_player is equal to the ORIGONAL_current_acting_player
+        filtered_actions = game_df[game_df['ORIGONAL_current_base_player'] == game_df['ORIGONAL_current_acting_player']]
+        filtered_actions = filtered_actions.loc[:, ['game_id', 'ORIGONAL_current_base_player', 'ORIGONAL_current_acting_player', 'ORIGONAL_next_action_type', 'STEPPED_next_action_type']].reset_index(drop=True)
+        
+        # Ensure that the next_action_type switches between "claim_base_action" and "exe"
+        for i, row in filtered_actions.iloc[:-1].iterrows():
+            next_row = filtered_actions.iloc[i + 1]
+            if row['ORIGONAL_next_action_type'] == 'claim_base_action':
+                assert next_row['ORIGONAL_next_action_type'] == 'exe_action', f"Next action type after claim_base_action is not exe for game_id {row['game_id']} at index {i}"
+            elif row['ORIGONAL_next_action_type'] == 'exe_action':
+                assert next_row['ORIGONAL_next_action_type'] == 'claim_base_action', f"Next action type after exe is not claim_base_action for game_id {row['game_id']} at index {i}"
+                
+                
+    # # Test that after challenge action, it goes to block action # TODO
+    # actions = load_actions[load_actions['ORIGONAL_next_action_type'] == 'challenge_action']
+    # next_actions = load_actions.loc[actions.index + 1]
+    # assert (next_actions['ORIGONAL_next_action_type'] == 'block_action').all(), "Next action after challenge_action is not block_action"
+
+    # # Test that after block action, it may go to challenge action again or claim action
+    # actions = load_actions[load_actions['ORIGONAL_next_action_type'] == 'block_action']
+    # next_actions = load_actions.loc[actions.index + 1]
+    # assert (next_actions['ORIGONAL_next_action_type'].isin(['challenge_action', 'claim_base_action'])).all(), "Next action after block_action is not challenge_action or claim_base_action"
+
+def test_challenge(load_actions, CARD_ACTION_MAP):
+    # Test challenging of all actions
+
+    # First test to make sure that when next_action_type is challenge, and action is 'pass', no cards or money are lost
+    for game_id, game_df in load_actions.groupby('game_id'):
+        actions = game_df[(game_df['ORIGONAL_next_action_type'] == 'challenge_action') & (game_df['action'] == 'pass')]
+        actions = actions.loc[:, ["ORIGONAL_next_action_type", "action", "STEPPED_next_action_type", "ORIGONAL_n_cards", "STEPPED_n_cards", "ORIGONAL_money", "STEPPED_money", "ORIGONAL_current_claimed_action", "ORIGONAL_current_acting_player", "ORIGONAL_current_base_player"]]
+        for i, row in actions.iterrows():
+            assert row['ORIGONAL_n_cards'] == row['STEPPED_n_cards'], f"Cards were lost when action was 'pass' for game_id {row['game_id']} at index {i}"
+            assert row['ORIGONAL_money'] == row['STEPPED_money'], f"Money was lost when action was 'pass' for game_id {row['game_id']} at index {i}"
+
+    # Then test to make sure that when next_action_type is challenge, and action is 'challenge' some player loses a life
+    for game_id, game_df in load_actions.groupby('game_id'):
+        actions = game_df[(game_df['ORIGONAL_next_action_type'] == 'challenge_action') & (game_df['action'] == 'challenge')]
+        for i, row in actions.iterrows():
+            origonal_state = row['ORIGONAL_n_cards']
+            stepped_state = row['STEPPED_n_cards']
+            assert origonal_state != stepped_state, f"No player lost a life when action was 'challenge' for game_id {row['game_id']} at index {i}"
+
+    # Then test to make sure that the RIGHT player loses a life depending on the ORIGONAL current claimed action and depending on the cards that the player who is being challenged has
+    for game_id, game_df in load_actions.groupby('game_id'):
+        actions = game_df[(game_df['ORIGONAL_next_action_type'] == 'challenge_action') & (game_df['action'] == 'challenge')]
+        actions = actions.loc[:,['game_id','all_cards','action', 'ORIGONAL_current_claimed_action', 'ORIGONAL_current_acting_player', 'ORIGONAL_current_base_player', 'ORIGONAL_n_cards', 'STEPPED_n_cards', 'ORIGONAL_agent_cards']]
+        for i, row in actions.iterrows():
+            claimed_action = row['ORIGONAL_current_claimed_action']
+            claimed_action = claimed_action.split("_")[0]
+            challenger = row['ORIGONAL_current_acting_player']
+            challenged_player = row['ORIGONAL_current_base_player']
+            all_agent_cards = row['all_cards']
+            correct_card_based_on_claimed_action = CARD_ACTION_MAP[claimed_action]
+            print(row)
+            # Debug prints to understand the structure
+            print(f"Game ID: {row['game_id']}, Index: {i}")
+            print(f"Challenger: {challenger}, Challenged Player: {challenged_player}")
+            print(f"ORIGONAL_n_cards: {row['ORIGONAL_n_cards']}")
+            print(f"STEPPED_n_cards: {row['STEPPED_n_cards']}")
+            print(correct_card_based_on_claimed_action)
+            print(all_agent_cards[str(challenged_player)])
+            
+            if correct_card_based_on_claimed_action in all_agent_cards[str(challenged_player)]:
+                print("Challenging player should lose life")
+                # challenger player should lose a life
+                assert row['STEPPED_n_cards'][str(challenger)] == row['ORIGONAL_n_cards'][str(challenger)] - 1, f"Challenger did not lose a life for game_id {row['game_id']} at index {i}"
+            else:
+                print("Challenged player should lose life")
+                # challenged player should lose a life
+                assert row['STEPPED_n_cards'][str(challenged_player)] == row['ORIGONAL_n_cards'][str(challenged_player)] - 1, f"Challenged player did not lose a life for game_id {row['game_id']} at index {i}"
+# def test_block(load_actions, lesson):
+#     # TODO 
+#     # init blocking capabilities and then test them
+#     pass
+
+        
+        
 
 
 
 
-# Test to show that rewards combine with cumulative rewards properly
 
-# test to show that all actions work as intended
 
-# test to show that next_state is equal to the state of the next action
+

@@ -67,10 +67,10 @@ def init_hyper_conf():
         "ALGO": "DQN",  # Algorithm
         "DOUBLE": True,
         # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        "BATCH_SIZE": 10 ,  # Batch size
+        "BATCH_SIZE": 2048 ,  # Batch size
         "LR": 1e-4,  # Learning rate
         "GAMMA": 0.99,  # Discount factor
-        "MEMORY_SIZE": 300,  # Max memory buffer size
+        "MEMORY_SIZE": 20480,  # Max memory buffer size
         "LEARN_STEP": 1,  # Learning frequency
         "CUDAGRAPHS": False,  # Use CUDA graphs
         "N_STEP": 1,  # Step number to calculate td error
@@ -255,11 +255,6 @@ def main():
     ##############################################################################
     ### Training loop
     ##############################################################################
-
-    # ### Load Next Lesson
-    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
-    #     LESSON = yaml.safe_load(file)
-    
     
     lesson_name = LESSON['lesson_name']
     os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None

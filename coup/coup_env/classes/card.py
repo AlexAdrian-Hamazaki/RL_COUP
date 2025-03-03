@@ -35,7 +35,7 @@ class Assassin(Card):
     REAL_ACTIONS = {"assassinate"}
     
     def __init__(self):
-        self._name = "Assassin"
+        self._name = "assassin"
         self._state = 'deck'
     def __repr__(self):
         return self.name
@@ -50,7 +50,7 @@ class Ambassador(Card):
     REAL_ACTIONS = {"exchange", 'block_steal'}
     
     def __init__(self):
-        self._name = "Ambassador"
+        self._name = "ambassador"
         self._state = 'deck'
         
     def __repr__(self):
@@ -66,7 +66,7 @@ class Contessa(Card):
     REAL_ACTIONS = {"block_assassinate"}
     
     def __init__(self):
-        self._name = "Contessa"
+        self._name = "contessa"
         self._state = 'deck'
         
     def __repr__(self):
@@ -82,7 +82,7 @@ class Duke(Card):
     REAL_ACTIONS = {"tax", 'block_foreign_aid'}
     
     def __init__(self):
-        self._name = "Duke"
+        self._name = "duke"
         self._state = 'deck'
         
         
@@ -98,7 +98,7 @@ class Captain(Card):
     REAL_ACTIONS = {"steal", "block_steal"}
     
     def __init__(self):
-        self._name = "Captain"
+        self._name = "captain"
         self._state = 'deck'
         
     def __repr__(self):

@@ -209,7 +209,7 @@ class MultiAgentTrainer:
 
     #             break
             
-    def play_game(self, real_agent, opponent, fill_memory_buffer:bool, save_actions:bool=True):
+    def play_game(self, real_agent, opponent, fill_memory_buffer:bool, save_actions:bool=False):
         """Play games for this agent against the opponent until we reach our max steps per episode
         adding to memory buffer as we go on
         
@@ -249,7 +249,9 @@ class MultiAgentTrainer:
             
             observation, _, termination, _, _= self.env.last() # reads the observation of the last state from current agent's POV
             state = observation['observation']
-    
+
+            
+
 
             ##### SELECT AGENT ########
             agent = lo_agents[i_agent]
@@ -262,8 +264,8 @@ class MultiAgentTrainer:
             
             ###### SELECT ACTION #######
             if termination:
-                action = None
-                assert False # this shouldnt't be gotten to anymore because termination flag is handled after step now
+                action = 9
+                # assert False # this shouldnt't be gotten to anymore because termination flag is handled after step now
 
             else:
                 # Agent or opponet samples action according to policy
@@ -274,13 +276,14 @@ class MultiAgentTrainer:
                     action = agent.get_action(state_flat, self.epsilon, action_mask)[0] # pick action according to eps
                 
             ######### STEP ############
+
             self.env.step(action) # current agent steps
-                        
+            
     
             ######## SEE CONSEQUENCE OF STEP ##########
             next_observation, _, termination, _, info = self.env.last() # reads the observation of the last state from current agent's POV
+            
             reward = self.env.rewards.get(i_agent, 0) # get the reward of the agent that just ACTED (self.env.last steps iter)    
-            print(f"Observed reward in multistep {reward}")
                 
             next_state = next_observation['observation']
 
@@ -336,16 +339,19 @@ class MultiAgentTrainer:
                 )
                 
             action_metrics = {}
-
+            cum_reward = self.env._cumulative_rewards.get(i_agent, 0) 
             if save_actions:
                 state = convert_np_to_list(state)
                 next_state = convert_np_to_list(next_state)
                 action_metrics["game_id"] = int(self.game_ticker)
                 action_metrics["action"] = int(action)
                 action_metrics["action_mask"] = convert_np_to_list(action_mask)
+                action_metrics["reward"] = float(reward)
+                action_metrics['cum_reward'] = float(cum_reward)
+                action_metrics["termination"] = bool(termination)
+                action_metrics['all_cards'] = dict(self.env.game.get_all_player_cards())
 
                 action_metrics["state"] = dict(state)
-                action_metrics["reward"] = float(reward)
                 action_metrics["next_state"] = dict(next_state)
 
                 # # Assuming `rewards` is a dictionary
@@ -370,15 +376,24 @@ class MultiAgentTrainer:
                 # print(f'Reward {reward}')
                 # print(f"Accumulated reward {self.env._cumulative_rewards[agent_position]}")
                 # print(f"Accumulated reward {self.env._cumulative_rewards}")
+                # print(self.env._cumulative_rewards)
+                # print(self.env.rewards)
+                # print(agent_position)
+                # print(lo_agents)
+                # print([agent.cards for agent in self.env.game.players])
+                
                 agent_reward = self.env._cumulative_rewards[agent_position]
-            
-                if real_agent == lo_agents[agent_position]:
+                # print(real_agent)
+                if real_agent == lo_agents[i_agent]:
                     agent_win = 1 # if agent wins, tick this up for win rate counter
                 else:
                     agent_win = 0
                     
                 self.game_ticker +=1
-                    
+                
+                # print(agent_reward)
+                # print(agent_win)
+                # print("")
                 return agent_reward, agent_win
 
         
@@ -653,18 +668,21 @@ class MultiAgentTrainer:
         
         Trains multi-agent for a DQN
         """
-        
-
-
-        
         self_train = True
         ### Handle opponent initiation # needs to be done outside of epoch training loop for self-case
         if self.LESSON["opponent"] == "self":
             self.setup_opponent_pool()
             print(f"Setup opponent pool for self-training {self.opponent_pool}")
+            
         elif self.LESSON['opponent'] == None:
             print("Not Self-training")
             self_train = False
+            
+        elif self.LESSON['opponent'] == 'random':
+            self.opponent = RandomOpponent()
+            assert self.opponent != self.elite
+            print(f"Loaded Opponent from {self.opponent}")
+            
         elif self.LESSON['opponent'] !='self': # load a DQN from somewhere else
             self.opponent = Opponent(dqn_path = self.LESSON['opponent'], device=self.device)
             self.opponent = self.opponent.model
@@ -706,12 +724,12 @@ class MultiAgentTrainer:
 
                                         
                 
-                
-                if epoch % self.LESSON['evo_epochs'] == 0: # Choosing how frequently to evolve pop
-                    self.evolve_pop() # evolve population after one epoch
-                    
-                if (epoch % self.LESSON['evo_opp_epochs'] == 0) and (self.LESSON['opponent'] == 'self'):  # Choosing how frequently we evolve opponents
-                    self.evolve_opp()
+                if epoch > 0 :
+                    if  epoch % self.LESSON['evo_epochs']  == 0: # Choosing how frequently to evolve pop
+                        self.evolve_pop() # evolve population after one epoch
+                        
+                    if (epoch % self.LESSON['evo_opp_epochs'] == 0) and (self.LESSON['opponent'] == 'self'):  # Choosing how frequently we evolve opponents
+                        self.evolve_opp()
                     
                 # ======================================
                 # Metrics to track across epochs

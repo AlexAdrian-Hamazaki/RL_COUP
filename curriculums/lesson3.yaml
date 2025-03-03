@@ -4,23 +4,24 @@ lesson_name: "2048_lesson3"
 # Train against random agent: 'random', weak opponent: 'weak', strong opponent: 'strong', or use self-play: 'self'
 opponent: self
 opponent_pool_size: 6      # Size of opponent pool for self-play
-evo_opp_epochs: 1000      # Epoch frequency to update opponent pool
+evo_opp_epochs: 49  # Epoch frequency to update opponent pool
 
 eval_opponent: random # 'random', 'weak' or 'strong'
 pretrained_path: models/DQN/lesson2_2048_trained_agent.pt  # Path to pretrained model weights
 save_path: models/DQN/lesson3_2048_trained_agent.pt  # Path to save trained model
 
 # HPO Parameters
-epochs: 10
+epochs: 5000
 episodes_per_epoch: 5  # Number of games before updating Q network (number of episoder per epoch)
-evo_epochs: 499  # Frequency of HPO evaluation and mutation
-n_evaluations: 1000  # Number of evaluation episodes for hyperparameter selection
-max_steps: 100 # Max steps in a game before it just resets
+evo_epochs: 49 # Frequency of HPO evaluation and mutation
+n_evaluations: 100   # Number of evaluation episodes for hyperparameter selection
+max_steps: 200 # Max steps in a game before it just resets. Required in case model cannot finish a game
 
 # network parameters
-epsilon: 0.3  # Starting epsilon value
-eps_end: 0.001  # Final epsilon value
-eps_decay: 0.9995  # Epsilon decay rate
+epsilon: 1.0  # Starting epsilon value
+eps_end: 0.05  # Final epsilon value
+eps_decay: 0.999  # Epsilon decay rate
+
 
 # General things
 env_name: 'COUP_v0.1'  # Environment name
@@ -28,7 +29,7 @@ algo: "DQN"  # Algorithm
 
 
 # Warmup buffer stuff
-buffer_warm_up: false  # Fill replay buffer with experiences
+buffer_warm_up: True # Fill replay buffer with experiences
 warm_up_opponent: 'random' # Difficulty level of warm up experiences (usually random)
 agent_warm_up: 0  # Number of epochs to warm up agent by training on random experiences
 
@@ -37,8 +38,8 @@ n_players: 2
 rewards:  # Rewards for different outcomes
     win: 1
     lose: -1
-    coins: 0.1
-    kill: 0.5
-    lose_life: -0.5
+    coins: 0
+    kill: 0
+    lose_life: 0
     deck_knowledge: 0
     play_continues: 0

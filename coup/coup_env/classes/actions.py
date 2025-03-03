@@ -17,6 +17,22 @@ class Actions:
     
     ACTIONS_WITH_TARGET = {'coup', 'assassinate', 'steal'}
     
+    CARDS_ACTIONS_MAP = {
+        "income": None,
+        "foreign_aid": None,
+        "coup": None,
+        "tax": "duke",
+        "assassinate": "assassin",
+        "steal": "captain",
+        "exchange": "ambassador",
+        "block_foreign_aid": "duke",
+        "block_assassinate": "contessa",
+        "block_steal_amb": "ambassador",
+        "block_steal_cap": "captain"
+    }
+    
+    
+    
     card = None
     
     def __init__(self, target_player = None, name="pass"):
@@ -237,25 +253,25 @@ class BlockAction(Actions):
         return self._blocks
 
 class B_Foreign_Aid(BlockAction):
-    card = None
+    card = 'duke'
     def __init__(self, name="block_foreign_aid"):
         super().__init__(name=name)
         self._blocks = "foreign_aid"
         
 class B_Assassinate(BlockAction):
-    card = None
+    card = 'contessa'
     def __init__(self, name="block_assassinate"):
         super().__init__(name=name)
         self._blocks = 'assassinate'
         
 class B_Steal_Ambassador(BlockAction):
-    card = None
+    card = 'ambassador'
     def __init__(self, name="block_steal_amb"):
         super().__init__(name=name)
         self._blocks = 'steal'
         
 class B_Steal_Captain(BlockAction):
-    card = None
+    card = 'captain'
     def __init__(self, name="block_steal_cap"):
         super().__init__(name=name)
         self._blocks = 'steal'

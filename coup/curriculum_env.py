@@ -50,8 +50,6 @@ class CurriculumEnv(CoupEnv):
         # check if agent killed someone
         if self._agent_killed(agent, prev_state):
             reward+=kill
-            print(f"Reward for killing {reward}")
-            
             
         # check if agent lost life
         if self._agent_lost_life(agent, prev_state):

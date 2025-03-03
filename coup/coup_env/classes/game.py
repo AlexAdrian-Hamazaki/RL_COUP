@@ -1,5 +1,5 @@
 import numpy as np
-from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal_Ambassador, B_Steal_Captain
+from .actions import Actions, Income, Foreign_Aid, Coup, Tax, Assassinate, Steal, Exchange, B_Assassinate, B_Foreign_Aid, B_Steal_Ambassador, B_Steal_Captain, NoAction
 from .card import Assassin, Captain, Contessa, Ambassador, Duke
 from .challenge import Challenge
 from .player import Player, Bot
@@ -39,7 +39,8 @@ class Game:
                             "assassinate":Assassinate,
                             "steal":Steal,
                             "exchange":Exchange,
-                            'pass':Actions}
+                            'pass':Actions,
+                            'none':NoAction}
         
         # init deck knowledge
         [player.knowledge.init_deck_knowledge(self.deck) for player in self.players]
@@ -202,7 +203,6 @@ Current Coins in Bank = {self._bank}
         all other players n cards
         """
         # self.update_revealed_knowledge_for_players()
-
         self.update_all_players_claimed_cards()
         self.update_all_players_n_coins()
         self.update_all_players_n_cards()
@@ -224,6 +224,9 @@ Current Coins in Bank = {self._bank}
         self.n_cards = {player.name: len(player.cards) for player in self.players}
             
 
+    def get_all_player_cards(self):
+        return {player.name: [card.name for card in player.cards] for player in self.players}
+        
 
     def update_order_after_death(self): # should go into game object
         players = self.players
