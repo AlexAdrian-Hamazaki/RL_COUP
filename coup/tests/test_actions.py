@@ -471,6 +471,23 @@ def test_challenge(load_actions, CARD_ACTION_MAP):
                 print("Challenged player should lose life")
                 # challenged player should lose a life
                 assert row['STEPPED_n_cards'][str(challenged_player)] == row['ORIGONAL_n_cards'][str(challenged_player)] - 1, f"Challenged player did not lose a life for game_id {row['game_id']} at index {i}"
+                
+
+def test_game_end_rewards(load_actions, lesson):
+    # Test winning and reward of winning
+    
+    # Group by 'game_id' and get the last row of each group
+    last_actions = load_actions.groupby('game_id').tail(1)
+    
+    # Check to make sure the agent reward is greater than the reward for winning or less than the reward for losing
+    win_reward = lesson['rewards']['win']
+    lose_reward = lesson['rewards']['lose']
+    
+    for i, row in last_actions.iterrows():
+        reward = row['reward']
+        assert reward >= lose_reward, f"Reward {reward} is less than the lose reward {lose_reward} for game_id {row['game_id']} at index {i}"
+        assert reward <= win_reward, f"Reward {reward} is greater than the win reward {win_reward} for game_id {row['game_id']} at index {i}"
+                    
 # def test_block(load_actions, lesson):
 #     # TODO 
 #     # init blocking capabilities and then test them

@@ -381,7 +381,7 @@ class MultiAgentTrainer:
                 # print(agent_position)
                 # print(lo_agents)
                 # print([agent.cards for agent in self.env.game.players])
-                
+                # print(reward)
                 agent_reward = self.env._cumulative_rewards[agent_position]
                 # print(real_agent)
                 if real_agent == lo_agents[i_agent]:
@@ -406,6 +406,10 @@ class MultiAgentTrainer:
         # =====================================           
         # Metrics to keep track of within this epoch
         # ===================================== 
+                
+        self.agent_reward_per_epoch = 0 # mean agent cumulative reward for the epoch
+        self.win_rate = 0  # mean agent win rate epoch
+        
         agent_reward_per_episode = []
         agent_win_in_episode = 0
         # =====================================           
@@ -444,9 +448,10 @@ class MultiAgentTrainer:
         # SAVE METRICS
         # =====================================
         agent_reward_per_epoch = np.mean(agent_reward_per_episode) # mean agent cumulative reward for the epoch
-        self.agent_reward_per_epoch = agent_reward_per_epoch# mean agent cumulative reward for the epoch
-        self.win_rate = agent_win_in_episode/self.episodes_per_epoch # mean agent win rate epoch
+        agent_win_rate_per_epoch = agent_win_in_episode/self.episodes_per_epoch 
         
+        return agent_reward_per_epoch, agent_win_rate_per_epoch
+
     
         # =====================================          
         # EPOCH IS DONE
@@ -713,16 +718,15 @@ class MultiAgentTrainer:
                 
                 # Train each agent in our pop for this epoch
                 for agent in self.pop:  # Loop through population and train each one individually
-                    self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
+                    agent_reward_per_epoch, agent_win_rate_per_epoch = self.train_one_epoch(agent) # Train this agent on an epoch number of episodes
+                    
                     # Update epsilon for exploration
                     self.epsilon = max(self.eps_end, self.epsilon * self.eps_decay)
                     
-                    lo_rewards_for_agents.append(self.agent_reward_per_epoch)
-                    lo_win_rates.append(self.win_rate)
+                    lo_rewards_for_agents.append(agent_reward_per_epoch)
+                    lo_win_rates.append(agent_win_rate_per_epoch)
                     
-                self.i_epoch+=1
-
-                                        
+                self.i_epoch+=1                
                 
                 if epoch > 0 :
                     if  epoch % self.LESSON['evo_epochs']  == 0: # Choosing how frequently to evolve pop
@@ -784,6 +788,8 @@ class GamePlayer(MultiAgentTrainer):
         self.opponent = opponent
         self.fill_memory_buffer = False
         self.game_ticker = 0
+        self.epsilon=0
+        
         
     
         

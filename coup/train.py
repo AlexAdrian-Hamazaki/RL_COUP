@@ -283,31 +283,31 @@ def main():
     multi_agent_trainer.train_multi_agent()
     
     
-    # ### Load Next Lesson
-    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
-    #     LESSON = yaml.safe_load(file)
+    ### Load Next Lesson
+    with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson2.yaml") as file:
+        LESSON = yaml.safe_load(file)
         
-    # lesson_name = LESSON['lesson_name']
-    # os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
-    # os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+    lesson_name = LESSON['lesson_name']
+    os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
 
-    # multi_agent_trainer.LESSON = LESSON
-    # multi_agent_trainer.load_lesson(LESSON)
-    # print(f"TRAINING ON LESSON 2")
-    # multi_agent_trainer.train_multi_agent()
+    multi_agent_trainer.LESSON = LESSON
+    multi_agent_trainer.load_lesson(LESSON)
+    print(f"TRAINING ON LESSON 2")
+    multi_agent_trainer.train_multi_agent()
     
     
-    #     ### Load Next Lesson
-    # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson3.yaml") as file:
-    #     LESSON = yaml.safe_load(file)
+        ### Load Next Lesson
+    with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson3.yaml") as file:
+        LESSON = yaml.safe_load(file)
         
-    # lesson_name = LESSON['lesson_name']
-    # os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
-    # os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
-    # multi_agent_trainer.LESSON = LESSON
-    # multi_agent_trainer.load_lesson(LESSON)
-    # print(f"TRAINING ON LESSON 3")
-    # multi_agent_trainer.train_multi_agent()
+    lesson_name = LESSON['lesson_name']
+    os.remove(f"metrics/train/{lesson_name}_rewards.jsonl") if os.path.exists(f"metrics/train/{lesson_name}_rewards.jsonl") else None
+    os.remove(f"metrics/eval/{lesson_name}_eval.jsonl") if os.path.exists(f"metrics/eval/{lesson_name}_eval.jsonl") else None
+    multi_agent_trainer.LESSON = LESSON
+    multi_agent_trainer.load_lesson(LESSON)
+    print(f"TRAINING ON LESSON 3")
+    multi_agent_trainer.train_multi_agent()
     
     #     ### Load Next Lesson
     # with open("/home/aadrian/Documents/RL_projects/RL_COUP/curriculums/lesson4.yaml") as file:

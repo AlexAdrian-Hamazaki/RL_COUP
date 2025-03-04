@@ -20,8 +20,7 @@ max_steps: 200 # Max steps in a game before it just resets. Required in case mod
 # network parameters
 epsilon: 1.0  # Starting epsilon value
 eps_end: 0.05  # Final epsilon value
-eps_decay: 0.999  # Epsilon decay rate
-
+eps_decay: 0.9998  # Epsilon decay rate
 
 # General things
 env_name: 'COUP_v0.1'  # Environment name
@@ -36,10 +35,10 @@ agent_warm_up: 0  # Number of epochs to warm up agent by training on random expe
 ## Game specific:
 n_players: 2
 rewards:  # Rewards for different outcomes
-    win: 1
-    lose: -1
-    coins: 0
-    kill: 0
-    lose_life: 0
+    win: 5
+    lose: -5
+    coins: 0.1
+    kill: 0.5
+    lose_life: -0.5
     deck_knowledge: 0
     play_continues: 0

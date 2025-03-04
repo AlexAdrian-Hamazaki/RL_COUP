@@ -465,7 +465,7 @@ class CoupEnv(AECEnv):
         
         return self.state, self.infos
     
-    def check_game_over(self, prev_state):
+    def game_over(self, prev_state):
         """ 
         Game ends when there is only 1 agent left
         
@@ -476,14 +476,13 @@ class CoupEnv(AECEnv):
         if len(self.agents)==1:
             #print("~~~~~~~~~~~~~~~~  Game over  ~~~~~~~~~~~~~~~~~")
             #print(f"~~~~~~~~~~~~~~~~  Agent {self.agents[0]} has won  ~~~~~~~~~~~~~~~~~")
-            # update game state
-            # self.state = {agent: self._get_obs(agent) for agent in self.agents} 
-            # # update rewards. This time game_win should be accurate as should game_end
-            # self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
-            # # self._cumulative_rewards[self.agent_selection]= 0
-            # self._accumulate_rewards()
+        
+            # # update rewards. This time game_win should be accurate as should game_en
+            self.rewards  = {agent: self._get_reward(agent, prev_state) for agent in self.agents}
+            self._accumulate_rewards()
             return True
-            
+    
+
             
         
 
@@ -630,7 +629,7 @@ class CoupEnv(AECEnv):
         ###################### IS the Game over ########################### 
         ################################################################# 
         
-        if self.check_game_over(prev_state): 
+        if self.game_over(prev_state): 
             self.infos[self.agent_selection] = {'next_action_type':"win"}
     
         return 
