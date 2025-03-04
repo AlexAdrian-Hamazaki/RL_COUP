@@ -10,25 +10,30 @@ I created a partially-observable PettingZoo reinforcement-learning environment a
 ### Curriculum Training
 The following graphs show the results of curriculum training. The training metrics are stored in the /metrics/pngs directory.
 
-Initial training against random opponent.
-![random](metrics/pngs/lesson1.png)
+## Initial training against random opponent  
+![Random Opponent Training](metrics/pngs/lesson1.png)  
 
-Training against previous agent
-![second](metrics/pngs/lesson2.png)
+## Training against previous agent  
+![Previous Agent Training](metrics/pngs/lesson2.png)  
 
-Training against self (playing against the latest version of itself)
-![self](metrics/pngs/lesson3.png)
+## Training against self (playing against the latest version of itself)  
+![Self-Training](metrics/pngs/lesson3.png)  
 
+Notably: In future versions, I likely need to train on more games to stabilize metrics.  
 
-Notably: In future versions I likely need to train on more games to stabalize metrics
+# Insights from the Model  
 
-# Insights from model
+Many insights can be drawn from the actions the model chooses to make. In this case, the model has definitely learned that the most efficient option to win is to take foreign aid (a means of acquiring money) and then assassinate the other player.  
+(This is likely a byproduct of the current instantiation of the game, which has yet to implement the ability to block foreign aid).  
 
-Many insights can be drawn from the actions the model chooses to make. In this case, the model has definetly learned that the most efficient option to win is to take foreign aid (a means of acquiring money) and then assassinate the other player. (This is likely a bi-product of the current instantiation of the game which has yet to instantiate the ability to block foreign aid). Nevertheless, the model has learned an efficient strategy to kill the opposing player, which givin the instantiation of the game seems optimal to me.
-![actions](insights/action_counts.png)
+Nevertheless, the model has learned an efficient strategy to kill the opposing player, which, given the current game rules, seems optimal to me.  
 
-I've also assessed the probability of the agent winning their game based on their starting cards.
-![actions](heatmap.png)
+![Action Counts](insights/action_counts.png)  
+
+I've also assessed the probability of the agent winning their game based on their starting cards.  
+
+![Winning Probability Heatmap](heatmap.png)  
+
 
 As a simple analysis, a logistic regression model (see "win_rate.ipynb") shows that having a captain gave the model its highest boost in odds-ratio to win. I also modeled interaction effects to evaluate if having any 2 pair card combo contributes more to winning than just their main effects. It appears as if there are small interaction effects, indicating that different pairs of cards affect win rate differently.
 
