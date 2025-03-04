@@ -11,13 +11,13 @@ I created a partially-observable PettingZoo reinforcement-learning environment a
 The following graphs show the results of curriculum training. The training metrics are stored in the /metrics/pngs directory.
 
 ## Initial training against random opponent  
-![Random Opponent Training](metrics/pngs/lesson1.png)  
+![Random Opponent Training](coup/metrics/pngs/lesson1.png)  
 
 ## Training against previous agent  
-![Previous Agent Training](metrics/pngs/lesson2.png)  
+![Previous Agent Training](coup/metrics/pngs/lesson2.png)  
 
 ## Training against self (playing against the latest version of itself)  
-![Self-Training](metrics/pngs/lesson3.png)  
+![Self-Training](coup/metrics/pngs/lesson3.png)  
 
 Notably: In future versions, I likely need to train on more games to stabilize metrics.  
 
@@ -28,11 +28,11 @@ Many insights can be drawn from the actions the model chooses to make. In this c
 
 Nevertheless, the model has learned an efficient strategy to kill the opposing player, which, given the current game rules, seems optimal to me.  
 
-![Action Counts](insights/action_counts.png)  
+![Action Counts](coup/insights/action_counts.png)  
 
 I've also assessed the probability of the agent winning their game based on their starting cards.  
 
-![Winning Probability Heatmap](heatmap.png)  
+![Winning Probability Heatmap](/coup/heatmap.png)  
 
 
 As a simple analysis, a logistic regression model (see "win_rate.ipynb") shows that having a captain gave the model its highest boost in odds-ratio to win. I also modeled interaction effects to evaluate if having any 2 pair card combo contributes more to winning than just their main effects. It appears as if there are small interaction effects, indicating that different pairs of cards affect win rate differently.
